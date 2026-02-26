@@ -1,0 +1,28 @@
+; *************************************************************
+; *** Scatter-Loading Description File for STM32F103C8 ***
+; *** Based on STM32CubeIDE linker script                    ***
+; *************************************************************
+
+LR_IROM1 0x08000000 0x00010000  {    ; load region size_region (64KB FLASH)
+  ER_IROM1 0x08000000 0x00010000  {  ; load address = execution address
+   *.o (.isr_vector, +First)         ; Векторная таблица первой
+   *(InRoot$$Sections)
+   .ANY (+RO)                         ; Code and RO data
+  }
+  
+  ; Определяем символы для startup-файла
+  _estack = 0x20005000;               ; End of RAM (20KB)
+  
+  ; Data section - загружается во FLASH, выполняется в RAM
+  RW_IRAM1 0x20000000 0x00005000  {  
+   .data: { *(.data) }                ; Initialized data
+   .bss: { *(.bss) }                  ; Zero-initialized data
+  }
+  
+  ; Определяем адреса для data и bss
+  _sidata = Load$$RW_IRAM1$$Base;     ; Start of data in FLASH
+  _sdata = Image$$RW_IRAM1$$Base;      ; Start of data in RAM
+  _edata = Image$$RW_IRAM1$$Limit;     ; End of data in RAM
+  _sbss = Image$$RW_IRAM1$$ZI$$Base;   ; Start of bss in RAM
+  _ebss = Image$$RW_IRAM1$$ZI$$Limit;  ; End of bss in RAM
+}
