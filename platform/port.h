@@ -26,6 +26,10 @@ extern "C" {
 #undef CLOCKS_PER_SEC
 #define CLOCKS_PER_SEC 1000
 
+/* BOARD SPECIFIC DEFINES */
+#define USE_HSE_8MHZ
+/* ********************** */
+
 void printf2(const char *format, ...);
 
 typedef enum
@@ -80,8 +84,8 @@ typedef enum
 #define DECAIRQ_EXTI_USEIRQ         ENABLE
 #define DECAIRQ_EXTI_NOIRQ          DISABLE
 
-#define TA_BOOT1                 	GPIO_Pin_2
-#define TA_BOOT1_GPIO            	GPIOB
+#define TA_BOOT1                 	GPIO_Pin_0
+#define TA_BOOT1_GPIO            	GPIOA
 
 #define TA_RESP_DLY                 GPIO_Pin_0
 #define TA_RESP_DLY_GPIO            GPIOC

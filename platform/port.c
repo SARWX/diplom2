@@ -226,7 +226,7 @@ int RCC_Configuration(void)
     /* RCC system reset */
     RCC_DeInit();
 
-    /* Enable HSE (внешний кварц, обычно 8 МГц на NodeMCU-BU01) */
+    /* Enable HSE (внешний кварц 16 МГц) */
     RCC_HSEConfig(RCC_HSE_ON);
 
     /* Wait till HSE is ready */
@@ -240,30 +240,30 @@ int RCC_Configuration(void)
         /* Flash 2 wait state для 72 МГц */
         FLASH_SetLatency(FLASH_Latency_2);
 
-        /* HCLK = SYSCLK (72 МГц) */
+        /* HCLK = SYSCLK */
         RCC_HCLKConfig(RCC_SYSCLK_Div1);
         
-        /* PCLK2 = HCLK (72 МГц) - для APB2 */
+        /* PCLK2 = HCLK */
         RCC_PCLK2Config(RCC_HCLK_Div1);
         
-        /* PCLK1 = HCLK/2 (36 МГц) - для APB1 */
+        /* PCLK1 = HCLK/2 */
         RCC_PCLK1Config(RCC_HCLK_Div2);
 
-        /* ADCCLK = PCLK2/6 (12 МГц) */
+        /* ADCCLK = PCLK2/6 */
         RCC_ADCCLKConfig(RCC_PCLK2_Div6);
 
         /* 
-         * Настройка PLL для STM32F103C8:
-         * Вход: HSE = 8 МГц (или 12 МГц, зависит от платы)
-         * Делитель: HSE/1 = 8 МГц
-         * Множитель: x9 = 72 МГц
+         * Настройка PLL для кварца 16 МГц:
+         * Вариант А: 64 МГц (16 * 4)
+         * Вариант Б: 72 МГц (16/2 * 9) - требует HSE/2
          */
-#ifdef USE_HSE_8MHZ
-        /* Для кварца 8 МГц: 8 * 9 = 72 МГц */
-        RCC_PLLConfig(RCC_PLLSource_HSE_Div1, RCC_PLLMul_9);
+        
+#ifdef USE_64MHZ
+        /* Для 64 МГц: 16 * 4 = 64 МГц */
+        RCC_PLLConfig(RCC_PLLSource_HSE_Div1, RCC_PLLMul_4);
 #else
-        /* Для кварца 12 МГц: 12 * 6 = 72 МГц */
-        RCC_PLLConfig(RCC_PLLSource_HSE_Div1, RCC_PLLMul_6);
+        /* Для 72 МГц: HSE/2 = 8 МГц, 8 * 9 = 72 МГц */
+        RCC_PLLConfig(RCC_PLLSource_HSE_Div1, RCC_PLLMul_4);
 #endif
 
         /* Enable PLL */
@@ -281,7 +281,7 @@ int RCC_Configuration(void)
     else
     {
         /* If HSE fails, use HSI (8 МГц) */
-        while (1);  // Ошибка, можно добавить индикацию
+        while (1);
     }
 
     RCC_GetClocksFreq(&RCC_ClockFreq);
@@ -536,57 +536,131 @@ int SPI2_Configuration(void)
 
 int GPIO_Configuration(void)
 {
-	GPIO_InitTypeDef GPIO_InitStructure;
-
-	/* Configure all unused GPIO port pins in Analog Input mode (floating input
-	* trigger OFF), this will reduce the power consumption and increase the device
-	* immunity against EMI/EMC */
-
-	// Enable GPIOs clocks
-	RCC_APB2PeriphClockCmd(
-						RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOB |
-						RCC_APB2Periph_GPIOC | RCC_APB2Periph_GPIOD |
-						RCC_APB2Periph_GPIOE | RCC_APB2Periph_AFIO,
-						ENABLE);
-
-	// Set all GPIO pins as analog inputs
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_All;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AIN;
-	GPIO_Init(GPIOA, &GPIO_InitStructure);
-	GPIO_Init(GPIOB, &GPIO_InitStructure);
-	GPIO_Init(GPIOC, &GPIO_InitStructure);
-	GPIO_Init(GPIOD, &GPIO_InitStructure);
-	GPIO_Init(GPIOE, &GPIO_InitStructure);
-
-	//Enable GPIO used for User button
-	GPIO_InitStructure.GPIO_Pin = TA_BOOT1;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-	GPIO_Init(TA_BOOT1_GPIO, &GPIO_InitStructure);
-
-	//Enable GPIO used for Response Delay setting
-	GPIO_InitStructure.GPIO_Pin = TA_RESP_DLY | TA_SW1_3 | TA_SW1_4 | TA_SW1_5 | TA_SW1_6 | TA_SW1_7 | TA_SW1_8;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-	GPIO_Init(TA_RESP_DLY_GPIO, &GPIO_InitStructure);
-
-	//Enable GPIO used for SW1 switch setting
-	GPIO_InitStructure.GPIO_Pin = TA_SW1_3 | TA_SW1_4 | TA_SW1_5 | TA_SW1_6 | TA_SW1_7 | TA_SW1_8;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-	GPIO_Init(TA_SW1_GPIO, &GPIO_InitStructure);
-
-	// Disable GPIOs clocks
-	//RCC_APB2PeriphClockCmd(
-	//					RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOB |
-	//					RCC_APB2Periph_GPIOC | RCC_APB2Periph_GPIOD |
-	//					RCC_APB2Periph_GPIOE | RCC_APB2Periph_AFIO,
-	//					DISABLE);
-
-	// Enable GPIO used for LEDs
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8 | GPIO_Pin_9 | GPIO_Pin_6 | GPIO_Pin_7;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_Init(GPIOC, &GPIO_InitStructure);
-	GPIO_PinRemapConfig(GPIO_Remap_SPI1, DISABLE);
-
+    GPIO_InitTypeDef GPIO_InitStructure;
+    
+    //=========================================================================
+    // 1. Включаем тактирование ТОЛЬКО для нужных портов
+    //=========================================================================
+    RCC_APB2PeriphClockCmd(
+        RCC_APB2Periph_GPIOA |     // PA0-PA15: кнопка, LED1, LED2, SPI1, PA3, PA8, PA15
+        RCC_APB2Periph_GPIOB |     // PB0-PB15: IRQ, RST, WAKEUP, EXTON, SPI2, PB1,PB3,PB4,PB5,PB8,PB9,PB10,PB11,PB15
+        RCC_APB2Periph_GPIOC |     // PC0-PC5: TA_RESP_DLY, TA_SW1_3-8
+        RCC_APB2Periph_AFIO,       // Alternate Function IO (для ремапинга, если нужен)
+        ENABLE);
+    
+    //=========================================================================
+    // 2. Настраиваем SPI1 для DW1000 (PA4-PA7)
+    //=========================================================================
+    // PA4 - CS (выход)
+    GPIO_InitStructure.GPIO_Pin = SPIx_CS;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(SPIx_CS_GPIO, &GPIO_InitStructure);
+    GPIO_SetBits(SPIx_CS_GPIO, SPIx_CS);  // CS неактивен (1)
+    
+    // PA5, PA7 - SCK, MOSI (альтернативная функция push-pull)
+    GPIO_InitStructure.GPIO_Pin = SPIx_SCK | SPIx_MOSI;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(SPIx_GPIO, &GPIO_InitStructure);
+    
+    // PA6 - MISO (вход с плавающим состоянием)
+    GPIO_InitStructure.GPIO_Pin = SPIx_MISO;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+    GPIO_Init(SPIx_GPIO, &GPIO_InitStructure);
+    
+    //=========================================================================
+    // 3. Настраиваем управляющие пины DW1000 (PB12, PB13, PB14)
+    //=========================================================================
+    // PB12 - RST (выход)
+    GPIO_InitStructure.GPIO_Pin = DW1000_RSTn;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(DW1000_RSTn_GPIO, &GPIO_InitStructure);
+//    GPIO_SetBits(DW1000_RSTn_GPIO, DW1000_RSTn);  // RST неактивен (1)
+    
+    // PB13 - WAKEUP (выход)
+    GPIO_InitStructure.GPIO_Pin = DW1000_WAKEUP;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(DW1000_WAKEUP_GPIO, &GPIO_InitStructure);
+    GPIO_ResetBits(DW1000_WAKEUP_GPIO, DW1000_WAKEUP);  // WAKEUP неактивен (0)
+    
+    // PB14 - EXTON (выход)
+    GPIO_InitStructure.GPIO_Pin = DW1000_EXTON;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(DW1000_EXTON_GPIO, &GPIO_InitStructure);
+    GPIO_SetBits(DW1000_EXTON_GPIO, DW1000_EXTON);  // EXTON активен (1)
+    
+    //=========================================================================
+    // 4. Настраиваем IRQ от DW1000 (PB0)
+    //=========================================================================
+    GPIO_InitStructure.GPIO_Pin = DECAIRQ;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;  // Вход без подтяжки
+    GPIO_Init(DECAIRQ_GPIO, &GPIO_InitStructure);
+    
+    //=========================================================================
+    // 5. Настраиваем кнопку (PA0)
+    //=========================================================================
+    GPIO_InitStructure.GPIO_Pin = TA_BOOT1;  // Это кнопка на PA0
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPD;  // Вход с подтяжкой к 0
+    GPIO_Init(TA_BOOT1_GPIO, &GPIO_InitStructure);
+    
+    //=========================================================================
+    // 6. Настраиваем светодиоды (PA1, PA2)
+    //=========================================================================
+    // PA1 - LED2
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(GPIOA, &GPIO_InitStructure);
+    GPIO_SetBits(GPIOA, GPIO_Pin_1);  // LED выключен (если активный 0)
+    
+    // PA2 - LED1
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;
+    GPIO_Init(GPIOA, &GPIO_InitStructure);
+    GPIO_SetBits(GPIOA, GPIO_Pin_2);  // LED выключен
+    
+    //=========================================================================
+    // 7. Настраиваем пины для Response Delay (PC0)
+    //=========================================================================
+    GPIO_InitStructure.GPIO_Pin = TA_RESP_DLY;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+    GPIO_Init(TA_RESP_DLY_GPIO, &GPIO_InitStructure);
+    
+    //=========================================================================
+    // 8. Настраиваем пины для переключателей SW1 (PC0-PC5)
+    //=========================================================================
+    GPIO_InitStructure.GPIO_Pin = TA_SW1_3 | TA_SW1_4 | TA_SW1_5 | TA_SW1_6 | TA_SW1_7 | TA_SW1_8;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+    GPIO_Init(TA_SW1_GPIO, &GPIO_InitStructure);
+    
+    //=========================================================================
+    // 9. Настраиваем SPI2 (PB12-PB15) - для других устройств
+    //=========================================================================
+    // PB12 - CS (выход)
+    GPIO_InitStructure.GPIO_Pin = SPIy_CS;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(SPIy_CS_GPIO, &GPIO_InitStructure);
+    GPIO_SetBits(SPIy_CS_GPIO, SPIy_CS);
+    
+    // PB13, PB15 - SCK, MOSI (альтернативная функция)
+    GPIO_InitStructure.GPIO_Pin = SPIy_SCK | SPIy_MOSI;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+    GPIO_Init(SPIy_GPIO, &GPIO_InitStructure);
+    
+    // PB14 - MISO (вход)
+    GPIO_InitStructure.GPIO_Pin = SPIy_MISO;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+    GPIO_Init(SPIy_GPIO, &GPIO_InitStructure);
+    
+    //=========================================================================
+    // 10. ВАЖНО: НЕ НАСТРАИВАЕМ пины JTAG/SWD (PB3, PB4, PA15)
+    // Они должны остаться в режиме альтернативной функции для отладчика
+    //=========================================================================
+    
     return 0;
 }
 
@@ -972,14 +1046,19 @@ static void spi_peripheral_init(void)
     spi_init();
 
     // Initialise SPI2 peripheral for LCD control
-    SPI2_Configuration();
-    port_LCD_RS_clear();
-    port_LCD_RW_clear();
+    // SPI2_Configuration();
+    // port_LCD_RS_clear();
+    // port_LCD_RW_clear();
 
     // Wait for LCD to power on.
     sleep_ms(10);
 }
 
+
+static void delay() {
+	for(int delay = 100000; delay > 0; delay--)
+		;
+}
 /*! ------------------------------------------------------------------------------------------------------------------
  * @fn peripherals_init()
  *
@@ -991,12 +1070,16 @@ static void spi_peripheral_init(void)
  */
 void peripherals_init (void)
 {
+	delay();
 	rcc_init();
+	// delay();
 	gpio_init();
+	// delay();
 	interrupt_init();
+	// delay();
 	systick_init();
 	spi_peripheral_init();
-	lcd_init();
+//	lcd_init();
 #ifdef USART_SUPPORT
     usartinit();
 #endif
