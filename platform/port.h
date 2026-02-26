@@ -61,8 +61,8 @@ typedef enum
 #define SPIx_MISO					GPIO_Pin_6
 #define SPIx_MOSI					GPIO_Pin_7
 
-#define DW1000_RSTn					GPIO_Pin_0
-#define DW1000_RSTn_GPIO			GPIOA
+#define DW1000_RSTn					GPIO_Pin_12
+#define DW1000_RSTn_GPIO			GPIOB
 
 #define DECARSTIRQ                  GPIO_Pin_0
 #define DECARSTIRQ_GPIO             GPIOA
@@ -71,12 +71,12 @@ typedef enum
 #define DECARSTIRQ_EXTI_PIN         GPIO_PinSource0
 #define DECARSTIRQ_EXTI_IRQn        EXTI0_IRQn
 
-#define DECAIRQ                     GPIO_Pin_5
+#define DECAIRQ                     GPIO_Pin_0
 #define DECAIRQ_GPIO                GPIOB
-#define DECAIRQ_EXTI                EXTI_Line5
+#define DECAIRQ_EXTI                EXTI_Line0
 #define DECAIRQ_EXTI_PORT           GPIO_PortSourceGPIOB
-#define DECAIRQ_EXTI_PIN            GPIO_PinSource5
-#define DECAIRQ_EXTI_IRQn           EXTI9_5_IRQn
+#define DECAIRQ_EXTI_PIN            GPIO_PinSource0
+#define DECAIRQ_EXTI_IRQn           EXTI0_IRQn
 #define DECAIRQ_EXTI_USEIRQ         ENABLE
 #define DECAIRQ_EXTI_NOIRQ          DISABLE
 
@@ -93,6 +93,12 @@ typedef enum
 #define TA_SW1_7					GPIO_Pin_4
 #define TA_SW1_8					GPIO_Pin_5
 #define TA_SW1_GPIO                 GPIOC
+
+#define DW1000_WAKEUP                GPIO_Pin_13
+#define DW1000_WAKEUP_GPIO           GPIOB
+
+#define DW1000_EXTON                 GPIO_Pin_14
+#define DW1000_EXTON_GPIO            GPIOB
 
 #define S1_SWITCH_ON  (1)
 #define S1_SWITCH_OFF (0)
