@@ -142,7 +142,7 @@ static int init_dw1000(void)
     reset_DW1000();
     
     spi_set_rate_low();
-    if (dwt_initialise(DWT_LOADNONE) == DWT_ERROR) {
+    if (dwt_initialise(DWT_READ_OTP_LID | DWT_READ_OTP_PID) == DWT_ERROR) {
         return -1;
     }
     spi_set_rate_high();
@@ -160,6 +160,10 @@ static int init_dw1000(void)
     /* DWT_FF_DATA_EN - accept data frames
      * DWT_FF_COORD_EN - allow receiving frames with no destination address */
     dwt_enableframefilter(DWT_FF_DATA_EN);
+		
+		uint32_t id_l = 0, id_p = 0;
+		id_l = dwt_getlotid();
+		id_p = dwt_getpartid();
     
     return 0;
 }
