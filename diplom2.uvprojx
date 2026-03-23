@@ -339,7 +339,7 @@
             <v6Rtti>0</v6Rtti>
             <VariousControls>
               <MiscControls></MiscControls>
-              <Define>USE_STDPERIPH_DRIVER, STM32F10X_MD, RESPONDER_PROGRAM</Define>
+              <Define>USE_STDPERIPH_DRIVER, STM32F10X_MD, RX_BROADCAST_PROGRAM</Define>
               <Undefine></Undefine>
               <IncludePath>.\decadriver;.\platform;.\Libraries\CMSIS\CM3\CoreSupport;.\Libraries\CMSIS\CM3\DeviceSupport\ST\STM32F10x;.\Libraries\STM32F10x_StdPeriph_Driver\inc;.\user</IncludePath>
             </VariousControls>
@@ -394,6 +394,16 @@
               <FileName>responder_program.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\user\responder_program.c</FilePath>
+            </File>
+            <File>
+              <FileName>tx_broadcast.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\tx_broadcast.c</FilePath>
+            </File>
+            <File>
+              <FileName>rx_responder.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\rx_responder.c</FilePath>
             </File>
           </Files>
         </Group>
