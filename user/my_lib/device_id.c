@@ -15,7 +15,8 @@ static device_config_t dev_main_anchor = {
     .part_id = 0,
     .type = DEVICE_TYPE_MAIN_ANCHOR,
     .short_addr = 0x0001,
-    .eui64 = {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+    // .eui64 = {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+    .eui64 = NULL,
     .init_func = default_init,
     .main_loop_func = default_loop,
     .net_ctx = NULL
@@ -25,7 +26,8 @@ static device_config_t dev_anchor = {
     .part_id = 0,
     .type = DEVICE_TYPE_ANCHOR,
     .short_addr = 0x0002,
-    .eui64 = {0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+    // .eui64 = {0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+    .eui64 = NULL,
     .init_func = default_init,
     .main_loop_func = default_loop,
     .net_ctx = NULL
@@ -35,7 +37,8 @@ static device_config_t dev_tag = {
     .part_id = 0,
     .type = DEVICE_TYPE_TAG,
     .short_addr = 0x0003,
-    .eui64 = {0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+    // .eui64 = {0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+    .eui64 = NULL,
     .init_func = default_init,
     .main_loop_func = default_loop,
     .net_ctx = NULL
@@ -92,7 +95,8 @@ int device_serialize(const device_config_t* dev, uint8_t* buffer, uint16_t buffe
     
     /* eui64 (8 bytes) */
     for (int i = 0; i < 8; i++) {
-        buffer[offset++] = dev->eui64.bytes[i];
+        if (dev->eui64)
+            buffer[offset++] = dev->eui64.bytes[i];
     }
     
     return offset;
@@ -100,11 +104,11 @@ int device_serialize(const device_config_t* dev, uint8_t* buffer, uint16_t buffe
 
 int device_deserialize(const uint8_t* buffer, uint16_t buffer_size, device_config_t* dev)
 {
+    uint16_t offset = 0;
+
     if (!buffer || !dev || buffer_size < 32) {
         return -1;
     }
-    
-    uint16_t offset = 0;
     
     /* part_id */
     dev->part_id = buffer[offset++] |
