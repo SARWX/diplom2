@@ -33,6 +33,17 @@ typedef struct device_config {
     void* net_ctx;
 } device_config_t;
 
+/* Структура для регистрации устройства */
+typedef struct {
+    uint32_t part_id;
+    device_config_t* dev;
+    void (*init_func)(device_config_t*);
+    void (*loop_func)(device_config_t*);
+} device_registration_t;
+
+/* Регистрация устройства с функциями */
+int device_register(const device_registration_t* reg);
+
 /*==============================================================================
  * Predefined Device Configurations
  *============================================================================*/

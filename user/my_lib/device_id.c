@@ -56,15 +56,47 @@ device_config_t DEVICE_TAG = dev_tag;
 static device_config_t* current_device = NULL;
 
 /* Таблица маппинга Part ID -> тип устройства */
-static const struct {
+#define MAX_MAPPINGS 16
+
+static struct {
     uint32_t part_id;
     device_config_t* dev;
-} device_mapping[] = {
-    /* Здесь будут Part ID реальных устройств */
-    /* Пример: {0x12345678, &DEVICE_MAIN_ANCHOR}, */
-    /* {0x87654321, &DEVICE_ANCHOR}, */
-    /* {0xABCD1234, &DEVICE_TAG}, */
-};
+} device_mappings[MAX_MAPPINGS];
+
+static uint8_t mapping_count = 0;
+
+int device_register(const device_registration_t* reg)
+{
+    if (mapping_count >= MAX_MAPPINGS) {
+        return -1;
+    }
+    
+    /* Устанавливаем функции */
+    reg->dev->init_func = reg->init_func;
+    reg->dev->main_loop_func = reg->loop_func;
+    
+    /* Добавляем маппинг */
+    device_mappings[mapping_count].part_id = reg->part_id;
+    device_mappings[mapping_count].dev = reg->dev;
+    mapping_count++;
+    
+    return 0;
+}
+
+/* Изменить device_init_from_hardware */
+device_config_t* device_init_from_hardware(void)
+{
+    uint32_t part_id = dwt_getpartid();
+    
+    for (uint8_t i = 0; i < mapping_count; i++) {
+        if (device_mappings[i].part_id == part_id) {
+            device_set_current(device_mappings[i].dev);
+            return current_device;
+        }
+    }
+    
+    return NULL;
+}
 
 #define MAPPING_COUNT (sizeof(device_mapping) / sizeof(device_mapping[0]))
 

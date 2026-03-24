@@ -142,13 +142,6 @@ static uint16_t build_header_64bit_64bit(uint8_t* buffer, uint8_t seq_num,
 /*==============================================================================
  * Public Functions - Initialization
  *============================================================================*/
-
-static int hw_init(void)
-{
-    /* Hardware initialization - to be implemented */
-    return 0;
-}
-
 int net_init(int use_eui64, net_addr16_t short_addr, const net_eui64_t* eui64, uint16_t filter_mask)
 {
     if (hw_init() != 0) {
