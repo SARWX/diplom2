@@ -386,24 +386,9 @@
           <GroupName>user</GroupName>
           <Files>
             <File>
-              <FileName>init_program.c</FileName>
+              <FileName>main.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\user\init_program.c</FilePath>
-            </File>
-            <File>
-              <FileName>responder_program.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\user\responder_program.c</FilePath>
-            </File>
-            <File>
-              <FileName>tx_broadcast.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\tx_broadcast.c</FilePath>
-            </File>
-            <File>
-              <FileName>rx_responder.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\rx_responder.c</FilePath>
+              <FilePath>.\user\main.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -574,6 +559,51 @@
               <FileName>stm32f10x_wwdg.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\Libraries\STM32F10x_StdPeriph_Driver\src\stm32f10x_wwdg.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>my_lib</GroupName>
+          <Files>
+            <File>
+              <FileName>net_mac.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\user\my_lib\net_mac.c</FilePath>
+            </File>
+            <File>
+              <FileName>net_mac.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\user\my_lib\net_mac.h</FilePath>
+            </File>
+            <File>
+              <FileName>device_id.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\user\my_lib\device_id.h</FilePath>
+            </File>
+            <File>
+              <FileName>device_id.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\user\my_lib\device_id.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>devices</GroupName>
+          <Files>
+            <File>
+              <FileName>anchor.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\user\devices\anchor\anchor.h</FilePath>
+            </File>
+            <File>
+              <FileName>main_anchor.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\user\devices\main_anchor\main_anchor.h</FilePath>
+            </File>
+            <File>
+              <FileName>tag.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\user\devices\tag\tag.h</FilePath>
             </File>
           </Files>
         </Group>

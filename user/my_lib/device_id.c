@@ -11,43 +11,38 @@ static void default_init(device_config_t* dev) { (void)dev; }
 static void default_loop(device_config_t* dev) { (void)dev; }
 
 /* Предопределенные устройства */
-static device_config_t dev_main_anchor = {
+static device_config_t DEVICE_MAIN_ANCHOR = {
     .part_id = 0,
     .type = DEVICE_TYPE_MAIN_ANCHOR,
     .short_addr = 0x0001,
-    // .eui64 = {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+    .eui64 = {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
     .eui64 = NULL,
     .init_func = default_init,
     .main_loop_func = default_loop,
     .net_ctx = NULL
 };
 
-static device_config_t dev_anchor = {
+static device_config_t DEVICE_ANCHOR = {
     .part_id = 0,
     .type = DEVICE_TYPE_ANCHOR,
     .short_addr = 0x0002,
-    // .eui64 = {0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+    .eui64 = {0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
     .eui64 = NULL,
     .init_func = default_init,
     .main_loop_func = default_loop,
     .net_ctx = NULL
 };
 
-static device_config_t dev_tag = {
+static device_config_t DEVICE_TAG = {
     .part_id = 0,
     .type = DEVICE_TYPE_TAG,
     .short_addr = 0x0003,
-    // .eui64 = {0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+    .eui64 = {0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
     .eui64 = NULL,
     .init_func = default_init,
     .main_loop_func = default_loop,
     .net_ctx = NULL
 };
-
-/* Глобальные объекты */
-device_config_t DEVICE_MAIN_ANCHOR = dev_main_anchor;
-device_config_t DEVICE_ANCHOR = dev_anchor;
-device_config_t DEVICE_TAG = dev_tag;
 
 /*==============================================================================
  * Internal Data
@@ -83,7 +78,6 @@ int device_register(const device_registration_t* reg)
     return 0;
 }
 
-/* Изменить device_init_from_hardware */
 device_config_t* device_init_from_hardware(void)
 {
     uint32_t part_id = dwt_getpartid();
@@ -127,8 +121,7 @@ int device_serialize(const device_config_t* dev, uint8_t* buffer, uint16_t buffe
     
     /* eui64 (8 bytes) */
     for (int i = 0; i < 8; i++) {
-        if (dev->eui64)
-            buffer[offset++] = dev->eui64.bytes[i];
+        buffer[offset++] = dev->eui64.bytes[i];
     }
     
     return offset;
@@ -142,22 +135,27 @@ int device_deserialize(const uint8_t* buffer, uint16_t buffer_size, device_confi
         return -1;
     }
     
-    /* part_id */
-    dev->part_id = buffer[offset++] |
-                   (buffer[offset++] << 8) |
-                   (buffer[offset++] << 16) |
-                   (buffer[offset++] << 24);
+    /* part_id - читаем 4 байта */
+    dev->part_id = buffer[offset];
+    dev->part_id |= (buffer[offset + 1] << 8);
+    dev->part_id |= (buffer[offset + 2] << 16);
+    dev->part_id |= (buffer[offset + 3] << 24);
+    offset += 4;
     
     /* type */
-    dev->type = (device_type_t)buffer[offset++];
+    dev->type = (device_type_t)buffer[offset];
+    offset += 1;
     
-    /* short_addr */
-    dev->short_addr = buffer[offset++] | (buffer[offset++] << 8);
+    /* short_addr - читаем 2 байта */
+    dev->short_addr = buffer[offset];
+    dev->short_addr |= (buffer[offset + 1] << 8);
+    offset += 2;
     
-    /* eui64 */
+    /* eui64 - читаем 8 байт */
     for (int i = 0; i < 8; i++) {
-        dev->eui64.bytes[i] = buffer[offset++];
+        dev->eui64.bytes[i] = buffer[offset + i];
     }
+    offset += 8;
     
     /* Устанавливаем функции по умолчанию */
     dev->init_func = default_init;
@@ -181,18 +179,3 @@ void device_set_current(device_config_t* dev)
     current_device = dev;
 }
 
-device_config_t* device_init_from_hardware(void)
-{
-    uint32_t part_id = dwt_getpartid();
-    
-    /* Ищем в таблице маппинга */
-    for (uint8_t i = 0; i < MAPPING_COUNT; i++) {
-        if (device_mapping[i].part_id == part_id) {
-            device_set_current(device_mapping[i].dev);
-            return current_device;
-        }
-    }
-    
-    /* Если не нашли - возвращаем NULL */
-    return NULL;
-}

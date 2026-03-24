@@ -143,11 +143,7 @@ static uint16_t build_header_64bit_64bit(uint8_t* buffer, uint8_t seq_num,
  * Public Functions - Initialization
  *============================================================================*/
 int net_init(int use_eui64, net_addr16_t short_addr, const net_eui64_t* eui64, uint16_t filter_mask)
-{
-    if (hw_init() != 0) {
-        return -1;
-    }
-    
+{  
     net_state.use_eui64 = use_eui64;
     net_state.short_addr = short_addr;
     
