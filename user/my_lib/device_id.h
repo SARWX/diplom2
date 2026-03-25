@@ -88,7 +88,7 @@ device_config_t* device_get_current(void);
 /**
  * Set current device
  */
-void device_set_current(device_config_t* dev);
+void device_set_current(device_config_t* dev, uint32_t part_id);
 
 /**
  * Initialize current device from hardware (reads Part ID and matches predefined devices)

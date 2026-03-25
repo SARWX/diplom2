@@ -11,34 +11,31 @@ static void default_init(device_config_t* dev) { (void)dev; }
 static void default_loop(device_config_t* dev) { (void)dev; }
 
 /* Предопределенные устройства */
-static device_config_t DEVICE_MAIN_ANCHOR = {
+device_config_t DEVICE_MAIN_ANCHOR = {
     .part_id = 0,
     .type = DEVICE_TYPE_MAIN_ANCHOR,
     .short_addr = 0x0001,
     .eui64 = {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-    .eui64 = NULL,
     .init_func = default_init,
     .main_loop_func = default_loop,
     .net_ctx = NULL
 };
 
-static device_config_t DEVICE_ANCHOR = {
+device_config_t DEVICE_ANCHOR = {
     .part_id = 0,
     .type = DEVICE_TYPE_ANCHOR,
     .short_addr = 0x0002,
     .eui64 = {0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-    .eui64 = NULL,
     .init_func = default_init,
     .main_loop_func = default_loop,
     .net_ctx = NULL
 };
 
-static device_config_t DEVICE_TAG = {
+device_config_t DEVICE_TAG = {
     .part_id = 0,
     .type = DEVICE_TYPE_TAG,
     .short_addr = 0x0003,
     .eui64 = {0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-    .eui64 = NULL,
     .init_func = default_init,
     .main_loop_func = default_loop,
     .net_ctx = NULL
@@ -84,7 +81,7 @@ device_config_t* device_init_from_hardware(void)
     
     for (uint8_t i = 0; i < mapping_count; i++) {
         if (device_mappings[i].part_id == part_id) {
-            device_set_current(device_mappings[i].dev);
+            device_set_current(device_mappings[i].dev, part_id);
             return current_device;
         }
     }
@@ -174,8 +171,8 @@ device_config_t* device_get_current(void)
     return current_device;
 }
 
-void device_set_current(device_config_t* dev)
+void device_set_current(device_config_t* dev, uint32_t part_id)
 {
     current_device = dev;
+    current_device->part_id = part_id;
 }
-
