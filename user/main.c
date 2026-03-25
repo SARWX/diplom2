@@ -66,23 +66,22 @@ int main(void)
     }
     
     /* Initialize network */
-    int use_eui64 = (my_device->type == DEVICE_TYPE_TAG) ? 1 : 0;
+    // int use_eui64 = (my_device->type == DEVICE_TYPE_TAG) ? 1 : 0;
+    int use_eui64 = 0;
     net_addr16_t short_addr = use_eui64 ? 0 : my_device->short_addr;
     const net_eui64_t* eui64 = use_eui64 ? &my_device->eui64 : NULL;
     
-    if (net_init(use_eui64, short_addr, eui64, NET_FILTER_DATA) != 0) {
-        while (1);
+    if (net_init(use_eui64, short_addr, eui64, DWT_FF_DATA_EN) != 0) {
+        while (1); /* not reachable now */
     }
     
     /* Run device */
-    if (my_device->init_func) {
+    if (my_device->init_func)
         my_device->init_func(my_device);
-    }
     
     while (1) {
-        if (my_device->main_loop_func) {
+        if (my_device->main_loop_func)
             my_device->main_loop_func(my_device);
-        }
     }
     
     return 0;

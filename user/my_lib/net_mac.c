@@ -158,10 +158,7 @@ int net_init(int use_eui64, net_addr16_t short_addr, const net_eui64_t* eui64, u
     if (eui64) {
         dwt_seteui((uint8_t*)eui64);
     }
-    
-    if (filter_mask != NET_FILTER_NONE) {
-        dwt_enableframefilter(filter_mask);
-    }
+    dwt_enableframefilter(filter_mask);
     
     net_state.initialized = 1;
     return 0;
