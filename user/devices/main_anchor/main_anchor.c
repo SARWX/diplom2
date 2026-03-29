@@ -1,3 +1,4 @@
+#include "deca_device_api.h"
 #include "main_anchor.h"
 #include "device_id.h"
 #include "net_mac.h"
@@ -6,12 +7,14 @@
 #include <string.h>
 #include <stdarg.h>
 
+extern struct net_state;
+
 /*==============================================================================
  * Internal State
  *============================================================================*/
 
 static uint8_t debug_enabled = 0;
-static system_context_t system_ctx;
+static net_devices_list_t net_devices_list;
 
 /*==============================================================================
  * Debug Output
@@ -33,9 +36,9 @@ static void debug_printf(const char* format, ...)
  * Anchor List Management
  *============================================================================*/
 
-anchor_t* anchor_create(const uint8_t* mac, uint8_t seq_id)
+net_device_t* anchor_create(const uint8_t* mac, uint8_t seq_id)
 {
-    anchor_t* new_anchor = (anchor_t*)malloc(sizeof(anchor_t));
+    net_device_t* new_anchor = (net_device_t*)malloc(sizeof(net_device_t));
     if (!new_anchor) {
         uart_puts("ERROR: Failed to allocate memory for anchor\r\n");
         return NULL;
@@ -62,11 +65,11 @@ anchor_t* anchor_create(const uint8_t* mac, uint8_t seq_id)
     return new_anchor;
 }
 
-void anchor_add(system_context_t* ctx, anchor_t* new_anchor)
+void anchor_add(net_devices_list_t* lst, net_device_t* new_anchor)
 {
-    if (!ctx || !new_anchor) return;
+    if (!lst || !new_anchor) return;
     
-    if (anchor_find_by_mac(ctx, new_anchor->mac_address)) {
+    if (anchor_find_by_mac(lst, new_anchor->mac_address)) {
         uart_printf("ERROR: Anchor with MAC %02X:%02X:%02X:%02X:%02X:%02X already exists\r\n",
                     new_anchor->mac_address[0], new_anchor->mac_address[1],
                     new_anchor->mac_address[2], new_anchor->mac_address[3],
@@ -76,32 +79,32 @@ void anchor_add(system_context_t* ctx, anchor_t* new_anchor)
         return;
     }
     
-    new_anchor->seq_id = ctx->total_anchors + 1;
-    new_anchor->next = ctx->head;
-    ctx->head = new_anchor;
-    ctx->total_anchors++;
+    new_anchor->seq_id = lst->total_anchors + 1;
+    new_anchor->next = lst->head;
+    lst->head = new_anchor;
+    lst->total_anchors++;
     
     debug_printf("Added anchor seq_id=%d, Total: %d\r\n",
-                 new_anchor->seq_id, ctx->total_anchors);
+                 new_anchor->seq_id, lst->total_anchors);
 }
 
-void anchor_remove(system_context_t* ctx, uint8_t seq_id)
+void anchor_remove(net_devices_list_t* lst, uint8_t seq_id)
 {
-    if (!ctx || !ctx->head) return;
+    if (!lst || !lst->head) return;
     
-    anchor_t* current = ctx->head;
-    anchor_t* prev = NULL;
+    net_device_t* current = lst->head;
+    net_device_t* prev = NULL;
     
     while (current) {
         if (current->seq_id == seq_id) {
             if (prev) {
                 prev->next = current->next;
             } else {
-                ctx->head = current->next;
+                lst->head = current->next;
             }
             free(current->distances);
             free(current);
-            ctx->total_anchors--;
+            lst->total_anchors--;
             debug_printf("Removed anchor with seq_id %d\r\n", seq_id);
             return;
         }
@@ -112,11 +115,11 @@ void anchor_remove(system_context_t* ctx, uint8_t seq_id)
     uart_printf("ERROR: Anchor with seq_id %d not found\r\n", seq_id);
 }
 
-anchor_t* anchor_find_by_seq(system_context_t* ctx, uint8_t seq_id)
+net_device_t* anchor_find_by_seq(net_devices_list_t* lst, uint8_t seq_id)
 {
-    if (!ctx) return NULL;
+    if (!lst) return NULL;
     
-    anchor_t* current = ctx->head;
+    net_device_t* current = lst->head;
     while (current) {
         if (current->seq_id == seq_id) {
             return current;
@@ -126,11 +129,11 @@ anchor_t* anchor_find_by_seq(system_context_t* ctx, uint8_t seq_id)
     return NULL;
 }
 
-anchor_t* anchor_find_by_mac(system_context_t* ctx, const uint8_t* mac)
+net_device_t* anchor_find_by_mac(net_devices_list_t* lst, const uint8_t* mac)
 {
-    if (!ctx) return NULL;
+    if (!lst) return NULL;
     
-    anchor_t* current = ctx->head;
+    net_device_t* current = lst->head;
     while (current) {
         if (memcmp(current->mac_address, mac, 6) == 0) {
             return current;
@@ -140,28 +143,28 @@ anchor_t* anchor_find_by_mac(system_context_t* ctx, const uint8_t* mac)
     return NULL;
 }
 
-void anchor_free_all(system_context_t* ctx)
+void anchor_free_all(net_devices_list_t* lst)
 {
-    if (!ctx) return;
+    if (!lst) return;
     
-    anchor_t* current = ctx->head;
+    net_device_t* current = lst->head;
     while (current) {
-        anchor_t* next = current->next;
+        net_device_t* next = current->next;
         free(current->distances);
         free(current);
         current = next;
     }
-    ctx->head = NULL;
-    ctx->total_anchors = 0;
+    lst->head = NULL;
+    lst->total_anchors = 0;
     debug_printf("Freed all anchors\r\n");
 }
 
-void anchor_print_list(system_context_t* ctx)
+void anchor_print_list(net_devices_list_t* lst)
 {
-    if (!ctx) return;
+    if (!lst) return;
     
-    uart_printf("=== Anchor List (Total: %d) ===\r\n", ctx->total_anchors);
-    anchor_t* current = ctx->head;
+    uart_printf("=== Anchor List (Total: %d) ===\r\n", lst->total_anchors);
+    net_device_t* current = lst->head;
     while (current) {
         uart_printf("  Seq ID: %d, MAC: %02X:%02X:%02X:%02X:%02X:%02X\r\n",
                     current->seq_id,
@@ -173,7 +176,7 @@ void anchor_print_list(system_context_t* ctx)
     uart_puts("==============================\r\n");
 }
 
-void anchor_update_distance(anchor_t* from, uint8_t to_seq_id, float distance)
+void anchor_update_distance(net_device_t* from, uint8_t to_seq_id, float distance)
 {
     if (!from || to_seq_id >= MAX_DISTANCES) return;
     from->distances[to_seq_id] = distance;
@@ -184,55 +187,40 @@ void anchor_update_distance(anchor_t* from, uint8_t to_seq_id, float distance)
 /*==============================================================================
  * System Management
  *============================================================================*/
-
-int system_init(system_context_t* ctx, const uint8_t* my_mac)
+int system_enumerate(net_devices_list_t* lst)
 {
-    if (!ctx) return -1;
-    
-    memset(ctx, 0, sizeof(system_context_t));
-    memcpy(ctx->my_mac, my_mac, 6);
-    ctx->initialized = 0;
-    ctx->head = NULL;
-    ctx->total_anchors = 0;
-    
-    uart_printf("System initialized. My MAC: %02X:%02X:%02X:%02X:%02X:%02X\r\n",
-                my_mac[0], my_mac[1], my_mac[2], my_mac[3], my_mac[4], my_mac[5]);
-    
-    return 0;
-}
+    if (!lst) return -1;
 
-int system_enumerate(system_context_t* ctx)
-{
-    if (!ctx) return -1;
-    
     uart_puts("\r\n=== Starting ENUMERATION ===\r\n");
-    uart_puts("Sending BROADCAST discovery messages...\r\n");
-    
-    /* Отправляем broadcast запрос и ждем ответы */
-    uint8_t discovery_payload[] = {'D', 'I', 'S', 'C', 'O', 'V', 'E', 'R'};
-    int response = net_send_broadcast_with_response(discovery_payload, sizeof(discovery_payload));
-    
-    if (response == 1) {
-        uart_puts("Received responses from anchors\r\n");
-        /* TODO: Парсить полученные ответы и добавлять в список */
-    } else {
-        uart_puts("No responses received\r\n");
-    }
-    
-    /* TODO: Назначить себе seq_id */
-    ctx->my_seq_id = 1;
-    ctx->initialized = 1;
-    
-    uart_printf("Enumeration completed. I am seq_id: %d\r\n", ctx->my_seq_id);
-    anchor_print_list(ctx);
+
+    // подготовка
+    lst->head = NULL;
+    lst->total_anchors = 0;
+    lst->initialized = 0;
+
+    set_net_mode(NET_MODE_ENUMERATION);
+
+    uint8_t payload[] = "DISCOVER";
+
+    if (net_send_broadcast(payload, sizeof(payload)) < 0)
+        return -1;
+
+    delay_ms(LISTEN_AFTR_BROADCAST_MS);
+
+    set_net_mode(NET_MODE_IDLE);
+
+    lst->initialized = 1;
+
+    uart_puts("Enumeration completed\r\n");
+    anchor_print_list(lst);
     uart_puts("===============================\r\n\r\n");
-    
+
     return 0;
 }
 
-int system_configure(system_context_t* ctx)
+int system_configure(net_devices_list_t* lst)
 {
-    if (!ctx || !ctx->initialized) {
+    if (!lst || !lst->initialized) {
         uart_puts("ERROR: System not initialized\r\n");
         return -1;
     }
@@ -246,39 +234,39 @@ int system_configure(system_context_t* ctx)
  * Command Handlers
  *============================================================================*/
 
-void handle_initialize_system(system_context_t* ctx)
+void handle_initialize_system(net_devices_list_t* lst)
 {
     uart_puts("\r\n>>> Handling INITIALIZE SYSTEM command\r\n");
     
-    if (ctx->initialized) {
+    if (lst->initialized) {
         uart_puts("System already initialized. Resetting...\r\n");
-        handle_reset(ctx);
+        handle_reset(lst);
     }
     
-    if (system_enumerate(ctx) == 0) {
+    if (system_enumerate(lst) == 0) {
         uart_puts("System initialized successfully\r\n");
     } else {
         uart_puts("ERROR: System initialization failed\r\n");
     }
 }
 
-void handle_reconfigure(system_context_t* ctx)
+void handle_reconfigure(net_devices_list_t* lst)
 {
     uart_puts("\r\n>>> Handling RECONFIGURE command\r\n");
     
-    if (!ctx->initialized) {
+    if (!lst->initialized) {
         uart_puts("ERROR: System not initialized. Please run INITIALIZE SYSTEM first\r\n");
         return;
     }
     
-    system_configure(ctx);
+    system_configure(lst);
 }
 
-void handle_start(system_context_t* ctx)
+void handle_start(net_devices_list_t* lst)
 {
     uart_puts("\r\n>>> Handling START command\r\n");
     
-    if (!ctx->initialized) {
+    if (!lst->initialized) {
         uart_puts("ERROR: System not initialized\r\n");
         return;
     }
@@ -286,30 +274,30 @@ void handle_start(system_context_t* ctx)
     uart_puts("Starting positioning system...\r\n");
 }
 
-void handle_stop(system_context_t* ctx)
+void handle_stop(net_devices_list_t* lst)
 {
     uart_puts("\r\n>>> Handling STOP command\r\n");
     uart_puts("Stopping positioning system...\r\n");
 }
 
-void handle_get_status(system_context_t* ctx)
+void handle_get_status(net_devices_list_t* lst)
 {
     uart_puts("\r\n>>> Handling GET STATUS command\r\n");
     
     uart_printf("System Status:\r\n");
-    uart_printf("  Initialized: %s\r\n", ctx->initialized ? "YES" : "NO");
-    uart_printf("  Total anchors: %d\r\n", ctx->total_anchors);
-    uart_printf("  My seq_id: %d\r\n", ctx->my_seq_id);
+    uart_printf("  Initialized: %s\r\n", lst->initialized ? "YES" : "NO");
+    uart_printf("  Total anchors: %d\r\n", lst->total_anchors);
+    uart_printf("  My seq_id: %d\r\n", lst->my_seq_id);
     uart_printf("  Debug mode: %s\r\n", debug_enabled ? "ON" : "OFF");
 }
 
-void handle_get_config(system_context_t* ctx)
+void handle_get_config(net_devices_list_t* lst)
 {
     uart_puts("\r\n>>> Handling GET CONFIG command\r\n");
-    anchor_print_list(ctx);
+    anchor_print_list(lst);
 }
 
-void handle_set_param(system_context_t* ctx, const char* args)
+void handle_set_param(net_devices_list_t* lst, const char* args)
 {
     uart_puts("\r\n>>> Handling SET PARAM command\r\n");
     
@@ -321,11 +309,11 @@ void handle_set_param(system_context_t* ctx, const char* args)
     uart_printf("Setting parameter: %s\r\n", args);
 }
 
-void handle_calibrate(system_context_t* ctx)
+void handle_calibrate(net_devices_list_t* lst)
 {
     uart_puts("\r\n>>> Handling CALIBRATE command\r\n");
     
-    if (!ctx->initialized) {
+    if (!lst->initialized) {
         uart_puts("ERROR: System not initialized\r\n");
         return;
     }
@@ -333,37 +321,37 @@ void handle_calibrate(system_context_t* ctx)
     uart_puts("Starting calibration process...\r\n");
 }
 
-void handle_reset(system_context_t* ctx)
+void handle_reset(net_devices_list_t* lst)
 {
     uart_puts("\r\n>>> Handling RESET command\r\n");
     
-    anchor_free_all(ctx);
-    ctx->initialized = 0;
-    ctx->total_anchors = 0;
-    ctx->my_seq_id = 0;
+    anchor_free_all(lst);
+    lst->initialized = 0;
+    lst->total_anchors = 0;
+    lst->my_seq_id = 0;
     
     uart_puts("System reset complete\r\n");
 }
 
-void handle_debug_on(system_context_t* ctx)
+void handle_debug_on(net_devices_list_t* lst)
 {
     uart_puts("\r\n>>> Handling DEBUG ON command\r\n");
     debug_enabled = 1;
     uart_puts("Debug mode enabled\r\n");
 }
 
-void handle_debug_off(system_context_t* ctx)
+void handle_debug_off(net_devices_list_t* lst)
 {
     uart_puts("\r\n>>> Handling DEBUG OFF command\r\n");
     debug_enabled = 0;
     uart_puts("Debug mode disabled\r\n");
 }
 
-void handle_save_config(system_context_t* ctx)
+void handle_save_config(net_devices_list_t* lst)
 {
     uart_puts("\r\n>>> Handling SAVE CONFIG command\r\n");
     
-    if (!ctx->initialized) {
+    if (!lst->initialized) {
         uart_puts("ERROR: System not initialized\r\n");
         return;
     }
@@ -371,13 +359,13 @@ void handle_save_config(system_context_t* ctx)
     uart_puts("Saving configuration to non-volatile memory...\r\n");
 }
 
-void handle_load_config(system_context_t* ctx)
+void handle_load_config(net_devices_list_t* lst)
 {
     uart_puts("\r\n>>> Handling LOAD CONFIG command\r\n");
     uart_puts("Loading configuration from non-volatile memory...\r\n");
 }
 
-void process_command(system_context_t* ctx, cmd_parse_result_t cmd)
+void process_command(net_devices_list_t* lst, cmd_parse_result_t cmd)
 {
     if (!cmd.valid) {
         uart_puts("ERROR: Invalid command\r\n");
@@ -385,19 +373,19 @@ void process_command(system_context_t* ctx, cmd_parse_result_t cmd)
     }
     
     switch (cmd.code) {
-        case CMD_INITIALIZE_SYSTEM: handle_initialize_system(ctx); break;
-        case CMD_RECONFIGURE:       handle_reconfigure(ctx);       break;
-        case CMD_START:             handle_start(ctx);             break;
-        case CMD_STOP:              handle_stop(ctx);              break;
-        case CMD_GET_STATUS:        handle_get_status(ctx);        break;
-        case CMD_GET_CONFIG:        handle_get_config(ctx);        break;
-        case CMD_SET_PARAM:         handle_set_param(ctx, cmd.args); break;
-        case CMD_CALIBRATE:         handle_calibrate(ctx);         break;
-        case CMD_RESET:             handle_reset(ctx);             break;
-        case CMD_DEBUG_ON:          handle_debug_on(ctx);          break;
-        case CMD_DEBUG_OFF:         handle_debug_off(ctx);         break;
-        case CMD_SAVE_CONFIG:       handle_save_config(ctx);       break;
-        case CMD_LOAD_CONFIG:       handle_load_config(ctx);       break;
+        case CMD_INITIALIZE_SYSTEM: handle_initialize_system(lst); break;
+        case CMD_RECONFIGURE:       handle_reconfigure(lst);       break;
+        case CMD_START:             handle_start(lst);             break;
+        case CMD_STOP:              handle_stop(lst);              break;
+        case CMD_GET_STATUS:        handle_get_status(lst);        break;
+        case CMD_GET_CONFIG:        handle_get_config(lst);        break;
+        case CMD_SET_PARAM:         handle_set_param(lst, cmd.args); break;
+        case CMD_CALIBRATE:         handle_calibrate(lst);         break;
+        case CMD_RESET:             handle_reset(lst);             break;
+        case CMD_DEBUG_ON:          handle_debug_on(lst);          break;
+        case CMD_DEBUG_OFF:         handle_debug_off(lst);         break;
+        case CMD_SAVE_CONFIG:       handle_save_config(lst);       break;
+        case CMD_LOAD_CONFIG:       handle_load_config(lst);       break;
         default:
             uart_printf("Command not implemented: %s\r\n", cmd_to_string(cmd.code));
             break;
@@ -411,11 +399,27 @@ void process_command(system_context_t* ctx, cmd_parse_result_t cmd)
 void main_anchor_init(device_config_t* dev)
 {
     (void)dev;
-    
+
+    // привязка ISR к пину IRQ
+    port_set_deca_isr(dwt_isr);
+
+    // коллбеки DW1000
+    dwt_setcallbacks(NULL, dw1000_rx_ok_cb, NULL, dw1000_rx_err_cb);
+
+    // включаем прерывания
+    dwt_setinterrupt(
+        DWT_INT_RFCG |
+        DWT_INT_RPHE |
+        DWT_INT_RFCE |
+        DWT_INT_RFSL,
+        1
+    );
+
     /* Инициализация системы с MAC адресом из device_config */
-    uint8_t my_mac[6] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0x00};
-    system_init(&system_ctx, my_mac);
-    
+    // включаем прием
+    dwt_rxenable(DWT_START_RX_IMMEDIATE);
+    system_enumerate(&net_devices_list);
+
     /* Настройка UART для команд */
     uart_set_line_callback(uart_line_callback);
     
@@ -434,7 +438,6 @@ void main_anchor_loop(device_config_t* dev)
     (void)dev;
     
     /* Основной цикл - обрабатываем сетевые события */
-    net_receive_once();
     
     /* Небольшая задержка */
     for (volatile int i = 0; i < 1000; i++);
@@ -446,7 +449,7 @@ void uart_line_callback(const char* line, uint16_t len)
     (void)len;
     
     cmd_parse_result_t cmd = cmd_parse(line);
-    process_command(&system_ctx, cmd);
+    process_command(&net_devices_list, cmd);
     
     uart_puts("\r\n> ");
 }

@@ -57,6 +57,11 @@ typedef struct {
 /* Callback for received messages */
 typedef void (*net_rx_callback_t)(net_message_t* msg);
 
+typedef enum {
+    NET_MODE_IDLE,
+    NET_MODE_ENUMERATION,
+} net_mode_t;
+
 /*==============================================================================
  * Initialization
  *============================================================================*/
@@ -173,5 +178,7 @@ int net_is_broadcast(const net_message_t* msg);
  * Run receiver once (non-blocking)
  */
 int net_receive_once(void);
+
+int set_net_mode(net_mode_t mode);
 
 #endif /* NET_MAC_H */
