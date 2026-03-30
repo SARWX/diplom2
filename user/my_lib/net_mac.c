@@ -420,7 +420,7 @@ int set_net_mode(net_mode_t mode) {
     net_state.mode = mode;
 }
 
-static void dw1000_rx_ok_cb(const dwt_cb_data_t *cb_data)
+void dw1000_rx_ok_cb(const dwt_cb_data_t *cb_data)
 {
     net_message_t msg;
 
@@ -437,7 +437,7 @@ static void dw1000_rx_ok_cb(const dwt_cb_data_t *cb_data)
     switch (net_state.mode)
     {
         case NET_MODE_ENUMERATION:
-            if (msg.payload_len > 0 && msg.payload[0] == 'R')
+            if (msg.payload_len > 0 && msg.payload[0] == 'R') // Надо поменять
             {
                 anchor_add(net_state.enum_list, &msg);
             }
@@ -448,7 +448,7 @@ static void dw1000_rx_ok_cb(const dwt_cb_data_t *cb_data)
     }
 }
 
-static void dw1000_rx_err_cb(const dwt_cb_data_t *cb_data)
+void dw1000_rx_err_cb(const dwt_cb_data_t *cb_data)
 {
     (void)cb_data;
     dwt_rxenable(DWT_START_RX_IMMEDIATE);

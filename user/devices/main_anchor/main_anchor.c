@@ -200,9 +200,7 @@ int system_enumerate(net_devices_list_t* lst)
 
     set_net_mode(NET_MODE_ENUMERATION);
 
-    uint8_t payload[] = "DISCOVER";
-
-    if (net_send_broadcast(payload, sizeof(payload)) < 0)
+    if (net_send_broadcast(DISCOVERY_PAYLOAD, DISCOVERY_PAYLOAD_LEN) < 0)
         return -1;
 
     delay_ms(LISTEN_AFTR_BROADCAST_MS);

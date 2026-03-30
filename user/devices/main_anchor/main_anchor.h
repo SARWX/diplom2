@@ -8,6 +8,10 @@
 
 #define LISTEN_AFTR_BROADCAST_MS 2000
 
+// Broadcast исследование окружения
+#define DISCOVERY_PAYLOAD "DISCOVER"
+#define DISCOVERY_PAYLOAD_LEN (sizeof(DISCOVERY_PAYLOAD) - 1)
+
 typedef struct anchor {
     uint8_t mac_address[6];
     uint8_t seq_id; // anchor / tag
