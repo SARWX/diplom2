@@ -425,9 +425,6 @@ void main_anchor_init(device_config_t* dev)
     //     while (USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET);
     //     sleep_ms(100);
     // }
-
-    /* Настройка UART для команд */
-    uart_set_line_callback(uart_line_callback);
     
     uart_puts("\r\n========================================\r\n");
     uart_puts("Main Anchor Station - Local Positioning System\r\n");

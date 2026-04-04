@@ -46,7 +46,4 @@ int system_configure(net_devices_list_t* ctx);
 void main_anchor_init(device_config_t* dev);
 void main_anchor_loop(device_config_t* dev);
 
-/* UART callback */
-void uart_line_callback(const char* line, uint16_t len);
-
 #endif /* MAIN_ANCHOR_H */
