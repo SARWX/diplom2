@@ -2,6 +2,7 @@
 #define MAIN_ANCHOR_H
 
 #include <stdint.h>
+#include "device_id.h"
 
 #define MAX_ANCHORS 16
 #define MAX_DISTANCES MAX_ANCHORS

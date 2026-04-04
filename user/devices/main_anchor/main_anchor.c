@@ -4,8 +4,14 @@
 #include "net_mac.h"
 #include "uart.h"
 #include "cmd_parser.h"
+#include "sleep.h"
+#include "port.h"
 #include <string.h>
 #include <stdarg.h>
+#include <stdlib.h>
+// DEBUG
+#include "stm32f10x_usart.h"
+#include "stm32f10x_rcc.h"
 
 extern struct net_state;
 
@@ -22,14 +28,7 @@ static net_devices_list_t net_devices_list;
 
 static void debug_printf(const char* format, ...)
 {
-    if (debug_enabled) {
-        va_list args;
-        va_start(args, format);
-        char buffer[128];
-        vsnprintf(buffer, sizeof(buffer), format, args);
-        uart_puts(buffer);
-        va_end(args);
-    }
+	;
 }
 
 /*==============================================================================
@@ -203,7 +202,7 @@ int system_enumerate(net_devices_list_t* lst)
     if (net_send_broadcast(DISCOVERY_PAYLOAD, DISCOVERY_PAYLOAD_LEN) < 0)
         return -1;
 
-    delay_ms(LISTEN_AFTR_BROADCAST_MS);
+    sleep_ms(LISTEN_AFTR_BROADCAST_MS);
 
     set_net_mode(NET_MODE_IDLE);
 
@@ -231,6 +230,7 @@ int system_configure(net_devices_list_t* lst)
 /*==============================================================================
  * Command Handlers
  *============================================================================*/
+void handle_reset(net_devices_list_t* lst);
 
 void handle_initialize_system(net_devices_list_t* lst)
 {
@@ -285,7 +285,6 @@ void handle_get_status(net_devices_list_t* lst)
     uart_printf("System Status:\r\n");
     uart_printf("  Initialized: %s\r\n", lst->initialized ? "YES" : "NO");
     uart_printf("  Total anchors: %d\r\n", lst->total_anchors);
-    uart_printf("  My seq_id: %d\r\n", lst->my_seq_id);
     uart_printf("  Debug mode: %s\r\n", debug_enabled ? "ON" : "OFF");
 }
 
@@ -326,7 +325,6 @@ void handle_reset(net_devices_list_t* lst)
     anchor_free_all(lst);
     lst->initialized = 0;
     lst->total_anchors = 0;
-    lst->my_seq_id = 0;
     
     uart_puts("System reset complete\r\n");
 }
@@ -416,7 +414,17 @@ void main_anchor_init(device_config_t* dev)
     /* Инициализация системы с MAC адресом из device_config */
     // включаем прием
     dwt_rxenable(DWT_START_RX_IMMEDIATE);
-    system_enumerate(&net_devices_list);
+   system_enumerate(&net_devices_list);
+    // uart_init(9600);
+
+    // RCC_ClocksTypeDef clocks;
+    // RCC_GetClocksFreq(&clocks);
+
+    // while (1) {
+    //     USART_SendData(USART1, (uint16_t)'B');
+    //     while (USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET);
+    //     sleep_ms(100);
+    // }
 
     /* Настройка UART для команд */
     uart_set_line_callback(uart_line_callback);
@@ -425,7 +433,7 @@ void main_anchor_init(device_config_t* dev)
     uart_puts("Main Anchor Station - Local Positioning System\r\n");
     uart_puts("========================================\r\n\r\n");
     uart_puts("System ready. Enter commands:\r\n");
-    uart_puts("  INITIALIZE SYSTEM, RECONFIGURE, START, STOP, GET STATUS,\r\n");
+   uart_puts("  INITIALIZE SYSTEM, RECONFIGURE, START, STOP, GET STATUS,\r\n");
     uart_puts("  GET CONFIG, SET PARAM <args>, CALIBRATE, RESET,\r\n");
     uart_puts("  DEBUG ON/OFF, SAVE CONFIG, LOAD CONFIG\r\n\r\n");
     uart_puts("> ");

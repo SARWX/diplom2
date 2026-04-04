@@ -5,6 +5,11 @@
 #include "main_anchor.h"
 #include "anchor.h"
 #include "tag.h"
+// DEBUG DELETEME
+#include "uart.h"
+#include "stm32f10x_usart.h"
+#include "stm32f10x_rcc.h"
+#include "sleep.h"
 
 /*==============================================================================
  * Hardware Configuration
@@ -28,8 +33,8 @@ static const dwt_config_t config = {
  *============================================================================*/
 
 static const device_registration_t devices[] = {
-    {0x12345678, &DEVICE_MAIN_ANCHOR, main_anchor_init, main_anchor_loop},
-    {0x545541A2, &DEVICE_ANCHOR,      anchor_init,      anchor_loop},
+    {0x545541A2, &DEVICE_MAIN_ANCHOR, main_anchor_init, main_anchor_loop},
+    {0x12345678, &DEVICE_ANCHOR,      anchor_init,      anchor_loop},
     {0xABCD1234, &DEVICE_TAG,         tag_init,         tag_loop},
 };
 

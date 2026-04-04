@@ -1,5 +1,5 @@
-#include "core_cm3.h"
 #include "stm32f10x.h"
+#include "core_cm3.h"
 #include "stm32f10x_usart.h"
 #include "stm32f10x_rcc.h"
 #include "stm32f10x_gpio.h"
@@ -60,10 +60,10 @@ static void put_char_to_tx_buffer(uint8_t c)
     tx_head = next;
     
     /* Start transmission if not already busy */
-    if (!tx_busy) {
-        tx_busy = 1;
+   if (!tx_busy) {
+       tx_busy = 1;
         USART_SendData(USART1, tx_buffer[tx_tail]);
-    }
+   }
 }
 
 /*==============================================================================
@@ -216,7 +216,8 @@ void uart_putchar(uint8_t c)
 void uart_puts(const char* str)
 {
     while (*str) {
-        uart_putchar(*str++);
+        USART_SendData(USART1, *str++);
+        // uart_putchar(*str++);
     }
 }
 

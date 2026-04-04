@@ -418,6 +418,7 @@ int net_receive_once(void)
 
 int set_net_mode(net_mode_t mode) {
     net_state.mode = mode;
+		return 0;
 }
 
 void dw1000_rx_ok_cb(const dwt_cb_data_t *cb_data)
@@ -439,7 +440,9 @@ void dw1000_rx_ok_cb(const dwt_cb_data_t *cb_data)
         case NET_MODE_ENUMERATION:
             if (msg.payload_len > 0 && msg.payload[0] == 'R') // Надо поменять
             {
-                anchor_add(net_state.enum_list, &msg);
+                // anchor_add(&msg);    // Тут надо продумать как мы будем обрабатывать callback'и
+                int i = 10;
+                i++;
             }
             break;
 

@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include "deca_device_api.h"
 
 /*==============================================================================
  * MAC Layer Configuration
@@ -180,5 +181,8 @@ int net_is_broadcast(const net_message_t* msg);
 int net_receive_once(void);
 
 int set_net_mode(net_mode_t mode);
+
+void dw1000_rx_ok_cb(const dwt_cb_data_t *cb_data);
+void dw1000_rx_err_cb(const dwt_cb_data_t *cb_data);
 
 #endif /* NET_MAC_H */

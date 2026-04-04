@@ -594,7 +594,7 @@ void dwt_configurefor64plen(int prf);
  *
  * no return value
  */
-void dwt_configure(dwt_config_t *config) ;
+void dwt_configure(dwt_config_t *config);
 
 /*! ------------------------------------------------------------------------------------------------------------------
  * @fn dwt_configuretxrf()

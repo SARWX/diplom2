@@ -263,7 +263,8 @@ int RCC_Configuration(void)
         RCC_PLLConfig(RCC_PLLSource_HSE_Div1, RCC_PLLMul_4);
 #else
         /* Для 72 МГц: HSE/2 = 8 МГц, 8 * 9 = 72 МГц */
-        RCC_PLLConfig(RCC_PLLSource_HSE_Div1, RCC_PLLMul_4);
+        // RCC_PLLConfig(RCC_PLLSource_HSE_Div1, RCC_PLLMul_4);
+		RCC_PLLConfig(RCC_PLLSource_HSE_Div1, RCC_PLLMul_6);
 #endif
 
         /* Enable PLL */

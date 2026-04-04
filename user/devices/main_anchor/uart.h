@@ -2,6 +2,7 @@
 #define UART_H
 
 #include <stdint.h>
+#include "stm32f10x.h"
 
 /*==============================================================================
  * Configuration

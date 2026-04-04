@@ -620,6 +620,26 @@
               <FileType>1</FileType>
               <FilePath>.\user\devices\tag\tag.c</FilePath>
             </File>
+            <File>
+              <FileName>uart.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\user\devices\main_anchor\uart.h</FilePath>
+            </File>
+            <File>
+              <FileName>uart.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\user\devices\main_anchor\uart.c</FilePath>
+            </File>
+            <File>
+              <FileName>cmd_parser.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\user\devices\main_anchor\cmd_parser.h</FilePath>
+            </File>
+            <File>
+              <FileName>cmd_parser.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\user\devices\main_anchor\cmd_parser.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
