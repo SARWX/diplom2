@@ -87,9 +87,9 @@ static net_device_t* anchor_create(const uint8_t* mac, uint8_t seq_id)
     return new_anchor;
 }
 
-static void anchor_add(net_device_t* new_anchor)
+static int anchor_add(net_device_t* new_anchor)
 {
-    if (!new_anchor) return;
+    if (!new_anchor) return -1;
 
     if (anchor_find_by_mac(new_anchor->mac_address)) {
         uart_printf("ERROR: Anchor with MAC %02X:%02X:%02X:%02X:%02X:%02X already exists\r\n",
@@ -98,7 +98,7 @@ static void anchor_add(net_device_t* new_anchor)
                     new_anchor->mac_address[4], new_anchor->mac_address[5]);
         free(new_anchor->distances);
         free(new_anchor);
-        return;
+        return -2;
     }
     
     new_anchor->seq_id = lst->total_anchors + 1;
@@ -108,6 +108,8 @@ static void anchor_add(net_device_t* new_anchor)
     
     debug_printf("Added anchor seq_id=%d, Total: %d\r\n",
                  new_anchor->seq_id, lst->total_anchors);
+
+    return new_anchor->seq_id;
 }
 
 static void anchor_remove(uint8_t seq_id)
@@ -322,6 +324,7 @@ void process_command(net_devices_list_t* lst, cmd_parse_result_t cmd)
 /*==============================================================================
  * Net communication Interface Functions
  *============================================================================*/
+
 static void dw1000_rx_ok_cb(const dwt_cb_data_t *cb_data)
 {
     net_message_t msg;
@@ -339,11 +342,28 @@ static void dw1000_rx_ok_cb(const dwt_cb_data_t *cb_data)
     switch (net_state.mode)
     {
         case NET_MODE_ENUMERATION:
-            if (msg.payload_len > 0 && msg.payload[0] == 'R') // Надо поменять
+            /* Ответ анкера - просто маркер 'A' в payload */
+            if (msg.payload_len >= 1 && msg.payload[0] == 'A')
             {
-                // anchor_add(&msg);    // Тут надо продумать как мы будем обрабатывать callback'и
-                int i = 10;
-                i++;
+                /* Создаём временную структуру с MAC из заголовка */
+                net_device_t temp_anchor;
+                memset(&temp_anchor, 0, sizeof(temp_anchor));
+                
+                /* Берём MAC из распарсенного сообщения (64-bit или 16-bit) */
+                if (msg.src_is_eui64) {
+                    memcpy(temp_anchor.mac_address, &msg.src_eui64, 6);
+                } else {
+                    /* 16-bit адрес расширяем до 6 байт (старшие байты 0) */
+                    /* это временное решение :( */
+                    temp_anchor.mac_address[0] = msg.src_addr16 & 0xFF;
+                    temp_anchor.mac_address[1] = (msg.src_addr16 >> 8) & 0xFF;
+                    temp_anchor.mac_address[2] = 0;
+                    temp_anchor.mac_address[3] = 0;
+                    temp_anchor.mac_address[4] = 0;
+                    temp_anchor.mac_address[5] = 0;
+                }
+
+                anchor_add(&temp_anchor);
             }
             break;
 
