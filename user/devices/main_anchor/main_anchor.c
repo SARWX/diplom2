@@ -414,12 +414,9 @@ void main_anchor_init(device_config_t* dev)
     /* Инициализация системы с MAC адресом из device_config */
     // включаем прием
     dwt_rxenable(DWT_START_RX_IMMEDIATE);
-   system_enumerate(&net_devices_list);
-    // uart_init(9600);
+    system_enumerate(&net_devices_list);
 
-    // RCC_ClocksTypeDef clocks;
-    // RCC_GetClocksFreq(&clocks);
-
+    // TRY IT WITH NEW USB-UART CONVERTER old is broken
     // while (1) {
     //     USART_SendData(USART1, (uint16_t)'B');
     //     while (USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET);
@@ -440,19 +437,15 @@ void main_anchor_loop(device_config_t* dev)
 {
     (void)dev;
     
-    /* Основной цикл - обрабатываем сетевые события */
+    static char line_buffer[128];
     
-    /* Небольшая задержка */
-    for (volatile int i = 0; i < 1000; i++);
-}
-
-/* Callback для UART команд */
-void uart_line_callback(const char* line, uint16_t len)
-{
-    (void)len;
+    /* Читаем команду из UART */
+    uart_readline(line_buffer, sizeof(line_buffer));
     
-    cmd_parse_result_t cmd = cmd_parse(line);
+    /* Парсим и обрабатываем */
+    cmd_parse_result_t cmd = cmd_parse(line_buffer);
     process_command(&net_devices_list, cmd);
     
+    /* Выводим приглашение */
     uart_puts("\r\n> ");
 }
