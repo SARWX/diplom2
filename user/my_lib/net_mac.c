@@ -7,15 +7,7 @@
  * Internal State
  *============================================================================*/
 
-struct {
-    uint8_t initialized;
-    uint8_t use_eui64;              /* 1 = use 64-bit source, 0 = use 16-bit */
-    net_addr16_t short_addr;
-    net_eui64_t eui64;
-    net_rx_callback_t rx_callback;
-    uint8_t rx_buffer[128];
-    net_mode_t mode;
-} net_state = {0};
+net_state_t net_state = {0};
 
 /* Header lengths */
 #define NET_MAC_HEADER_LEN_16BIT   9
@@ -419,40 +411,4 @@ int net_receive_once(void)
 int set_net_mode(net_mode_t mode) {
     net_state.mode = mode;
 		return 0;
-}
-
-void dw1000_rx_ok_cb(const dwt_cb_data_t *cb_data)
-{
-    net_message_t msg;
-
-    dwt_rxenable(DWT_START_RX_IMMEDIATE | DWT_NO_SYNC_PTRS);
-
-    if (cb_data->datalength > sizeof(net_state.rx_buffer))
-        return;
-
-    dwt_readrxdata(net_state.rx_buffer, cb_data->datalength, 0);
-
-    if (!net_parse_message(net_state.rx_buffer, cb_data->datalength, &msg))
-        return;
-
-    switch (net_state.mode)
-    {
-        case NET_MODE_ENUMERATION:
-            if (msg.payload_len > 0 && msg.payload[0] == 'R') // Надо поменять
-            {
-                // anchor_add(&msg);    // Тут надо продумать как мы будем обрабатывать callback'и
-                int i = 10;
-                i++;
-            }
-            break;
-
-        default:
-            break;
-    }
-}
-
-void dw1000_rx_err_cb(const dwt_cb_data_t *cb_data)
-{
-    (void)cb_data;
-    dwt_rxenable(DWT_START_RX_IMMEDIATE);
 }

@@ -320,6 +320,46 @@ void process_command(net_devices_list_t* lst, cmd_parse_result_t cmd)
 }
 
 /*==============================================================================
+ * Net communication Interface Functions
+ *============================================================================*/
+static void dw1000_rx_ok_cb(const dwt_cb_data_t *cb_data)
+{
+    net_message_t msg;
+
+    dwt_rxenable(DWT_START_RX_IMMEDIATE | DWT_NO_SYNC_PTRS);
+
+    if (cb_data->datalength > sizeof(net_state.rx_buffer))
+        return;
+
+    dwt_readrxdata(net_state.rx_buffer, cb_data->datalength, 0);
+
+    if (!net_parse_message(net_state.rx_buffer, cb_data->datalength, &msg))
+        return;
+
+    switch (net_state.mode)
+    {
+        case NET_MODE_ENUMERATION:
+            if (msg.payload_len > 0 && msg.payload[0] == 'R') // Надо поменять
+            {
+                // anchor_add(&msg);    // Тут надо продумать как мы будем обрабатывать callback'и
+                int i = 10;
+                i++;
+            }
+            break;
+
+        default:
+            break;
+    }
+}
+
+static void dw1000_rx_err_cb(const dwt_cb_data_t *cb_data)
+{
+    (void)cb_data;
+    dwt_rxenable(DWT_START_RX_IMMEDIATE);
+}
+
+
+/*==============================================================================
  * Device Interface Functions
  *============================================================================*/
 
@@ -327,10 +367,10 @@ void main_anchor_init(device_config_t* dev)
 {
     (void)dev;
 
-    // привязка ISR к пину IRQ
+    // Регистрируем обработчик прерывания от DW1000
     port_set_deca_isr(dwt_isr);
 
-    // коллбеки DW1000
+    // Регистрируем коллбеки на события DW1000 (успешный приём и ошибка)
     dwt_setcallbacks(NULL, dw1000_rx_ok_cb, NULL, dw1000_rx_err_cb);
 
     // включаем прерывания
@@ -352,12 +392,12 @@ void main_anchor_init(device_config_t* dev)
     //     while (USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET);
     //     sleep_ms(100);
     // }
-    
+
     uart_puts("\r\n========================================\r\n");
     uart_puts("Main Anchor Station - Local Positioning System\r\n");
     uart_puts("========================================\r\n\r\n");
     uart_puts("System ready. Enter commands:\r\n");
-   uart_puts("  INITIALIZE SYSTEM, RECONFIGURE, START, STOP, GET STATUS,\r\n");
+    uart_puts("  INITIALIZE SYSTEM, RECONFIGURE, START, STOP, GET STATUS,\r\n");
     uart_puts("  GET CONFIG, SET PARAM <args>, CALIBRATE, RESET,\r\n");
     uart_puts("  DEBUG ON/OFF, SAVE CONFIG, LOAD CONFIG\r\n\r\n");
     uart_puts("> ");

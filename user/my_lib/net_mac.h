@@ -63,6 +63,19 @@ typedef enum {
     NET_MODE_ENUMERATION,
 } net_mode_t;
 
+typedef struct {
+    uint8_t initialized;
+    uint8_t use_eui64;
+    net_addr16_t short_addr;
+    net_eui64_t eui64;
+    net_rx_callback_t rx_callback;
+    uint8_t rx_buffer[128];
+    net_mode_t mode;
+} net_state_t;
+
+/* global net state */
+extern net_state_t net_state;
+
 /*==============================================================================
  * Initialization
  *============================================================================*/
@@ -181,8 +194,5 @@ int net_is_broadcast(const net_message_t* msg);
 int net_receive_once(void);
 
 int set_net_mode(net_mode_t mode);
-
-void dw1000_rx_ok_cb(const dwt_cb_data_t *cb_data);
-void dw1000_rx_err_cb(const dwt_cb_data_t *cb_data);
 
 #endif /* NET_MAC_H */
