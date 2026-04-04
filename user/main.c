@@ -15,7 +15,7 @@
  * Hardware Configuration
  *============================================================================*/
 
-static const dwt_config_t config = {
+static dwt_config_t config = {
     2,               /* Channel number */
     DWT_PRF_64M,     /* Pulse repetition frequency */
     DWT_PLEN_1024,   /* Preamble length */

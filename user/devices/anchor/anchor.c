@@ -4,7 +4,7 @@
 #include "port.h"
 #include <string.h>
 
-#define DISCOVER_PAYLOAD "DISCOVER"
+#define DISCOVERY_PAYLOAD ((const uint8_t*)"DISCOVER")
 #define RESPONSE_PAYLOAD "A"
 
 static uint8_t initialized = 0;
@@ -23,8 +23,8 @@ static void rx_ok_cb(const dwt_cb_data_t *cb_data)
     
     /* Проверяем broadcast и DISCOVER */
     if (net_is_broadcast(&msg) && 
-        msg.payload_len == sizeof(DISCOVER_PAYLOAD) - 1 && /* Сомнительная вещь */
-        memcmp(msg.payload, DISCOVER_PAYLOAD, msg.payload_len) == 0)
+        msg.payload_len == sizeof(DISCOVERY_PAYLOAD) - 1 && /* Сомнительная вещь */
+        memcmp(msg.payload, DISCOVERY_PAYLOAD, msg.payload_len) == 0)
     {
         net_send_broadcast((const uint8_t*)RESPONSE_PAYLOAD, sizeof(RESPONSE_PAYLOAD) - 1);
     }
