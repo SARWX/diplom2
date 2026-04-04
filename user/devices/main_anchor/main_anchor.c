@@ -9,6 +9,8 @@
 #include <string.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include <stdarg.h>
+#include <stdio.h>
 // DEBUG
 #include "stm32f10x_usart.h"
 #include "stm32f10x_rcc.h"
@@ -28,7 +30,15 @@ static net_devices_list_t net_devices_list;
 
 static void debug_printf(const char* format, ...)
 {
-	;
+    if (!debug_enabled) return;
+    
+    char buffer[128];
+    va_list args;
+    va_start(args, format);
+    vsnprintf(buffer, sizeof(buffer), format, args);
+    va_end(args);
+    
+    uart_puts(buffer);
 }
 
 /*==============================================================================
@@ -240,7 +250,7 @@ void handle_initialize_system(net_devices_list_t* lst)
         uart_puts("System already initialized. Resetting...\r\n");
         handle_reset(lst);
     }
-    
+
     if (system_enumerate(lst) == 0) {
         uart_puts("System initialized successfully\r\n");
     } else {
@@ -439,10 +449,7 @@ void main_anchor_loop(device_config_t* dev)
     
     static char line_buffer[128];
     
-    /* Читаем команду из UART */
     uart_readline(line_buffer, sizeof(line_buffer));
-    
-    /* Парсим и обрабатываем */
     cmd_parse_result_t cmd = cmd_parse(line_buffer);
     process_command(&net_devices_list, cmd);
     
