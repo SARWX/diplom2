@@ -258,14 +258,8 @@ int RCC_Configuration(void)
          * Вариант Б: 72 МГц (16/2 * 9) - требует HSE/2
          */
         
-#ifdef USE_64MHZ
-        /* Для 64 МГц: 16 * 4 = 64 МГц */
-        RCC_PLLConfig(RCC_PLLSource_HSE_Div1, RCC_PLLMul_4);
-#else
-        /* Для 72 МГц: HSE/2 = 8 МГц, 8 * 9 = 72 МГц */
-        // RCC_PLLConfig(RCC_PLLSource_HSE_Div1, RCC_PLLMul_4);
+        /* Используется кварц на 12 МГц, ниже устанавливается 72МГц */
 		RCC_PLLConfig(RCC_PLLSource_HSE_Div1, RCC_PLLMul_6);
-#endif
 
         /* Enable PLL */
         RCC_PLLCmd(ENABLE);
