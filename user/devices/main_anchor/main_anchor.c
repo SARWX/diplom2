@@ -387,6 +387,7 @@ void main_anchor_init(device_config_t* dev)
 {
     (void)dev;
 
+    uart_init(9600);
     // Регистрируем обработчик прерывания от DW1000
     port_set_deca_isr(dwt_isr);
 

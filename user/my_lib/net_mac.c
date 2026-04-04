@@ -157,11 +157,6 @@ int net_init(int use_eui64, net_addr16_t short_addr, const net_eui64_t* eui64, u
     return 0;
 }
 
-void net_set_rx_callback(net_rx_callback_t callback)
-{
-    net_state.rx_callback = callback;
-}
-
 net_addr16_t net_get_src_addr16(void)
 {
     return net_state.short_addr;
@@ -371,41 +366,6 @@ int net_is_broadcast(const net_message_t* msg)
     if (!msg) return 0;
     if (msg->dest_is_eui64) return 0;
     return (msg->dst_addr16 == NET_BROADCAST_ADDR);
-}
-
-int net_receive_once(void)
-{
-    uint32_t status_reg;
-    net_message_t msg;
-    
-    if (!net_state.initialized) {
-        return -1;
-    }
-    
-    status_reg = dwt_read32bitreg(SYS_STATUS_ID);
-    
-    if (status_reg & SYS_STATUS_RXFCG) {
-        uint16_t frame_len = dwt_read32bitreg(RX_FINFO_ID) & RX_FINFO_RXFL_MASK_1023;
-        
-        if (frame_len <= sizeof(net_state.rx_buffer)) {
-            dwt_readrxdata(net_state.rx_buffer, frame_len, 0);
-            
-            if (net_parse_message(net_state.rx_buffer, frame_len, &msg)) {
-                if (net_state.rx_callback) {
-                    net_state.rx_callback(&msg);
-                }
-            }
-        }
-        
-        dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG);
-        return 1;
-    }
-    
-    if (status_reg & SYS_STATUS_ALL_RX_ERR) {
-        dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_ERR);
-    }
-    
-    return 0;
 }
 
 int set_net_mode(net_mode_t mode) {

@@ -13,7 +13,6 @@
 #include "sleep.h"
 #include "lcd.h"
 #include "port.h"
-#include "uart.h"
 
 #define rcc_init(x)					RCC_Configuration(x)
 #define systick_init(x)				SysTick_Configuration(x)
@@ -1072,5 +1071,4 @@ void peripherals_init (void)
 	interrupt_init();
 	systick_init();
 	spi_peripheral_init();
-	uart_init(9600);
 }

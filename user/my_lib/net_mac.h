@@ -55,9 +55,6 @@ typedef struct {
     uint16_t payload_len;       /* Payload length */
 } net_message_t;
 
-/* Callback for received messages */
-typedef void (*net_rx_callback_t)(net_message_t* msg);
-
 typedef enum {
     NET_MODE_IDLE,
     NET_MODE_ENUMERATION,
@@ -68,7 +65,6 @@ typedef struct {
     uint8_t use_eui64;
     net_addr16_t short_addr;
     net_eui64_t eui64;
-    net_rx_callback_t rx_callback;
     uint8_t rx_buffer[128];
     net_mode_t mode;
 } net_state_t;
@@ -89,11 +85,6 @@ extern net_state_t net_state;
  * @return 0 on success, -1 on error
  */
 int net_init(int use_eui64, net_addr16_t short_addr, const net_eui64_t* eui64, uint16_t filter_mask);
-
-/**
- * Set receive callback
- */
-void net_set_rx_callback(net_rx_callback_t callback);
 
 /**
  * Get current source address (as 16-bit)
@@ -187,11 +178,6 @@ int net_parse_message(uint8_t* buffer, uint16_t len, net_message_t* msg);
  * Check if message is broadcast
  */
 int net_is_broadcast(const net_message_t* msg);
-
-/**
- * Run receiver once (non-blocking)
- */
-int net_receive_once(void);
 
 int set_net_mode(net_mode_t mode);
 
