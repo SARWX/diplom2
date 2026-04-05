@@ -224,7 +224,7 @@ int RCC_Configuration(void)
     /* RCC system reset */
     RCC_DeInit();
 
-    /* Enable HSE (внешний кварц 16 МГц) */
+    /* Enable HSE (external 16 MHz crystal) */
     RCC_HSEConfig(RCC_HSE_ON);
 
     /* Wait till HSE is ready */
@@ -235,7 +235,7 @@ int RCC_Configuration(void)
         /* Enable Prefetch Buffer */
         FLASH_PrefetchBufferCmd(FLASH_PrefetchBuffer_Enable);
         
-        /* Flash 2 wait state для 72 МГц */
+        /* Flash 2 wait states for 72 MHz */
         FLASH_SetLatency(FLASH_Latency_2);
 
         /* HCLK = SYSCLK */
@@ -250,14 +250,10 @@ int RCC_Configuration(void)
         /* ADCCLK = PCLK2/6 */
         RCC_ADCCLKConfig(RCC_PCLK2_Div6);
 
-        /* 
-         * Настройка PLL для кварца 16 МГц:
-         * Вариант А: 64 МГц (16 * 4)
-         * Вариант Б: 72 МГц (16/2 * 9) - требует HSE/2
+        /* PLL configuration for 16 MHz crystal -> 72 MHz:
+         * 16 MHz / 2 = 8 MHz, 8 MHz * 9 = 72 MHz
          */
-        
-        /* Используется кварц на 12 МГц, ниже устанавливается 72МГц */
-		RCC_PLLConfig(RCC_PLLSource_HSE_Div1, RCC_PLLMul_6);
+        RCC_PLLConfig(RCC_PLLSource_HSE_Div2, RCC_PLLMul_9);
 
         /* Enable PLL */
         RCC_PLLCmd(ENABLE);
@@ -273,11 +269,9 @@ int RCC_Configuration(void)
     }
     else
     {
-        /* If HSE fails, use HSI (8 МГц) */
+        /* If HSE fails, infinite loop */
         while (1);
     }
-
-    RCC_GetClocksFreq(&RCC_ClockFreq);
 
     /* Enable SPI1 clock */
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
