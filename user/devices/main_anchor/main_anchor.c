@@ -385,7 +385,7 @@ void main_anchor_init(device_config_t* dev)
 {
     (void)dev;
 
-    uart_init(9600);
+    uart_init(115200);
     // Регистрируем обработчик прерывания от DW1000
     port_set_deca_isr(dwt_isr);
 
@@ -405,20 +405,13 @@ void main_anchor_init(device_config_t* dev)
     // включаем прием
     dwt_rxenable(DWT_START_RX_IMMEDIATE);
 
-    // TRY IT WITH NEW USB-UART CONVERTER old is broken
-    // while (1) {
-    //     USART_SendData(USART1, (uint16_t)'B');
-    //     while (USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET);
-    //     sleep_ms(100);
-    // }
-
     uart_puts("\r\n========================================\r\n");
     uart_puts("Main Anchor Station - Local Positioning System\r\n");
     uart_puts("========================================\r\n\r\n");
     uart_puts("System ready. Enter commands:\r\n");
-    uart_puts("  INITIALIZE SYSTEM, RECONFIGURE, START, STOP, GET STATUS,\r\n");
-    uart_puts("  GET CONFIG, SET PARAM <args>, CALIBRATE, RESET,\r\n");
-    uart_puts("  DEBUG ON/OFF, SAVE CONFIG, LOAD CONFIG\r\n\r\n");
+    uart_puts("  INITIALIZE_SYSTEM, RECONFIGURE, START, STOP, GET_STATUS,\r\n");
+    uart_puts("  GET CONFIG, SET_PARAM <args>, CALIBRATE, RESET,\r\n");
+    uart_puts("  DEBUG_ON/OFF, SAVE_CONFIG, LOAD_CONFIG\r\n\r\n");
     uart_puts("> ");
 }
 

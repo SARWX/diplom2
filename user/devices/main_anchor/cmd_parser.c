@@ -12,19 +12,19 @@ typedef struct {
 } cmd_map_t;
 
 static const cmd_map_t cmd_table[] = {
-    {"INITIALIZE SYSTEM",    CMD_INITIALIZE_SYSTEM},
+    {"INITIALIZE_SYSTEM",    CMD_INITIALIZE_SYSTEM},
     {"RECONFIGURE",          CMD_RECONFIGURE},
     {"START",                CMD_START},
     {"STOP",                 CMD_STOP},
-    {"GET STATUS",           CMD_GET_STATUS},
-    {"GET CONFIG",           CMD_GET_CONFIG},
-    {"SET PARAM",            CMD_SET_PARAM},
+    {"GET_STATUS",           CMD_GET_STATUS},
+    {"GET_CONFIG",           CMD_GET_CONFIG},
+    {"SET_PARAM",            CMD_SET_PARAM},
     {"CALIBRATE",            CMD_CALIBRATE},
     {"RESET",                CMD_RESET},
-    {"DEBUG ON",             CMD_DEBUG_ON},
-    {"DEBUG OFF",            CMD_DEBUG_OFF},
-    {"SAVE CONFIG",          CMD_SAVE_CONFIG},
-    {"LOAD CONFIG",          CMD_LOAD_CONFIG}
+    {"DEBUG_ON",             CMD_DEBUG_ON},
+    {"DEBUG_OFF",            CMD_DEBUG_OFF},
+    {"SAVE_CONFIG",          CMD_SAVE_CONFIG},
+    {"LOAD_CONFIG",          CMD_LOAD_CONFIG}
 };
 
 #define CMD_TABLE_SIZE (sizeof(cmd_table) / sizeof(cmd_map_t))
