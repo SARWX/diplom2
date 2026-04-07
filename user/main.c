@@ -34,7 +34,7 @@ static dwt_config_t config = {
 
 static const device_registration_t devices[] = {
     {0x545541A2, &DEVICE_MAIN_ANCHOR, main_anchor_init, main_anchor_loop},
-    {0x12345678, &DEVICE_ANCHOR,      anchor_init,      anchor_loop},
+    {0x1454DA34, &DEVICE_ANCHOR,      anchor_init,      anchor_loop},
     {0xABCD1234, &DEVICE_TAG,         tag_init,         tag_loop},
 };
 
