@@ -12,19 +12,33 @@ typedef struct {
 } cmd_map_t;
 
 static const cmd_map_t cmd_table[] = {
-    {"INITIALIZE_SYSTEM",    CMD_INITIALIZE_SYSTEM},
-    {"RECONFIGURE",          CMD_RECONFIGURE},
-    {"START",                CMD_START},
-    {"STOP",                 CMD_STOP},
-    {"GET_STATUS",           CMD_GET_STATUS},
-    {"GET_CONFIG",           CMD_GET_CONFIG},
-    {"SET_PARAM",            CMD_SET_PARAM},
-    {"CALIBRATE",            CMD_CALIBRATE},
-    {"RESET",                CMD_RESET},
-    {"DEBUG_ON",             CMD_DEBUG_ON},
-    {"DEBUG_OFF",            CMD_DEBUG_OFF},
-    {"SAVE_CONFIG",          CMD_SAVE_CONFIG},
-    {"LOAD_CONFIG",          CMD_LOAD_CONFIG}
+    /* System commands */
+    {"INITIALIZE",      CMD_INITIALIZE},
+    {"RECONFIGURE",     CMD_RECONFIGURE},
+    {"START",           CMD_START},
+    {"STOP",            CMD_STOP},
+    {"RESET",           CMD_RESET},
+    
+    /* Status commands */
+    {"GET_STATUS",      CMD_GET_STATUS},
+    {"GET_CONFIG",      CMD_GET_CONFIG},
+    
+    /* Debug commands */
+    {"DEBUG_ON",        CMD_DEBUG_ON},
+    {"DEBUG_OFF",       CMD_DEBUG_OFF},
+    
+    /* Config commands */
+    {"SET_PARAM",       CMD_SET_PARAM},
+    {"SAVE_CONFIG",     CMD_SAVE_CONFIG},
+    {"LOAD_CONFIG",     CMD_LOAD_CONFIG},
+    {"CALIBRATE",       CMD_CALIBRATE},
+    
+    /* Anchor specific commands */
+    {"DISCOVER",        CMD_DISCOVER},
+    {"CONFIG_START",    CMD_CONFIG_START},
+    {"CONFIG_STOP",     CMD_CONFIG_STOP},
+    {"RANGING_START",   CMD_RANGING_START},
+    {"RANGING_STOP",    CMD_RANGING_STOP},
 };
 
 #define CMD_TABLE_SIZE (sizeof(cmd_table) / sizeof(cmd_map_t))
@@ -84,7 +98,7 @@ cmd_parse_result_t cmd_parse(const char* buffer)
         return result;
     }
     
-    /* Find separator between command and arguments */
+    /* Find separator between command and arguments (space or tab) */
     const char* args_start = NULL;
     size_t cmd_len = 0;
     
@@ -105,7 +119,7 @@ cmd_parse_result_t cmd_parse(const char* buffer)
         cmd_len = buffer_len;
     }
     
-    /* Normalize command to uppercase */
+    /* Extract command and convert to uppercase */
     char cmd_upper[64];
     size_t copy_len = (cmd_len < sizeof(cmd_upper) - 1) ? cmd_len : sizeof(cmd_upper) - 1;
     str_to_upper(cmd_upper, cmd_buffer, copy_len + 1);
