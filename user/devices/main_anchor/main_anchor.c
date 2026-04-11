@@ -186,7 +186,7 @@ static int system_enumerate(void)
     lst->total_anchors = 0;
     lst->initialized = 0;
 
-    set_net_mode(NET_MODE_ENUMERATION);
+    net_state.mode = NET_MODE_ENUMERATION;
 
     /* DW1000 is half-duplex device, so we need turn off reciever before sending smt */
     dwt_forcetrxoff();
@@ -196,7 +196,7 @@ static int system_enumerate(void)
 
     sleep_ms(LISTEN_AFTR_BROADCAST_MS);
 
-    set_net_mode(NET_MODE_IDLE);
+    net_state.mode = NET_MODE_IDLE;
 
     lst->initialized = 1;
 
@@ -384,10 +384,8 @@ static void dw1000_rx_err_cb(const dwt_cb_data_t *cb_data)
  * Device Interface Functions
  *============================================================================*/
 
-void main_anchor_init(device_config_t* dev)
+void main_anchor_init(void)
 {
-    (void)dev;
-
     uart_init(115200);
     // Регистрируем обработчик прерывания от DW1000
     port_set_deca_isr(dwt_isr);
@@ -418,10 +416,8 @@ void main_anchor_init(device_config_t* dev)
     uart_puts("> ");
 }
 
-void main_anchor_loop(device_config_t* dev)
+void main_anchor_loop(void)
 {
-    (void)dev;
-    
     static char line_buffer[128];
     
     uart_readline(line_buffer, sizeof(line_buffer));

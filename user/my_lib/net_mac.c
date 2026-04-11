@@ -135,22 +135,21 @@ static uint16_t build_header_64bit_64bit(uint8_t* buffer, uint8_t seq_num,
 /*==============================================================================
  * Public Functions - Initialization
  *============================================================================*/
-int net_init(int use_eui64, net_addr16_t short_addr, const net_eui64_t* eui64, uint16_t filter_mask)
-{  
+int net_init(int use_eui64, net_eui64_t* eui64, uint16_t filter_mask)
+{
+    if (!eui64)
+        return -1;
+ 
     net_state.use_eui64 = use_eui64;
-    net_state.short_addr = short_addr;
-    
-    if (eui64) {
-        memcpy(&net_state.eui64, eui64, sizeof(net_eui64_t));
-    } else {
-        memset(&net_state.eui64, 0, sizeof(net_eui64_t));
-    }
-    
+    net_state.short_addr = eui64->bytes[0] | (eui64->bytes[1] << 8);
+
     dwt_setpanid(NET_PAN_ID);
-    dwt_setaddress16(short_addr);
-    if (eui64) {
-        dwt_seteui((uint8_t*)eui64);
-    }
+    if (use_eui64) {
+            memcpy(&net_state.eui64, eui64, sizeof(net_eui64_t));
+            dwt_seteui((uint8_t*)&net_state.eui64);
+    } else
+        dwt_setaddress16(net_state.short_addr);
+
     dwt_enableframefilter(filter_mask);
     
     net_state.initialized = 1;
@@ -368,7 +367,3 @@ int net_is_broadcast(const net_message_t* msg)
     return (msg->dst_addr16 == NET_BROADCAST_ADDR);
 }
 
-int set_net_mode(net_mode_t mode) {
-    net_state.mode = mode;
-		return 0;
-}

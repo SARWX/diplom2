@@ -1,5 +1,6 @@
 #include "anchor.h"
 #include "net_mac.h"
+#include "cmd_parser.h"
 #include "deca_device_api.h"
 #include "port.h"
 #include <string.h>
@@ -7,7 +8,45 @@
 #define DISCOVERY_PAYLOAD ((const uint8_t*)"DISCOVER")
 #define RESPONSE_PAYLOAD "A"
 
-static uint8_t initialized = 0;
+/*==============================================================================
+ * Command Processing for Anchor
+ *============================================================================*/
+
+static void process_anchor_command(cmd_code_t cmd, const char* args)
+{
+    (void)args;
+    
+    switch (cmd) {
+        case CMD_DISCOVER:
+            /* Response to DISCOVER from main station */
+            net_send_broadcast((const uint8_t*)RESPONSE_PAYLOAD, sizeof(RESPONSE_PAYLOAD) - 1);
+            break;
+            
+        case CMD_CONFIG_START:
+            net_state.mode = NET_MODE_CONFIG;
+            break;
+
+        case CMD_CONFIG_STOP:
+            net_state.mode = NET_MODE_IDLE;
+            break;
+            
+        case CMD_RANGING_START:
+            net_state.mode =NET_MODE_RANGING;
+            break;
+            
+        case CMD_RANGING_STOP:
+            net_state.mode = NET_MODE_IDLE;
+            break;
+            
+        default:
+            /* Unknown command - ignore */
+            break;
+    }
+}
+
+/*==============================================================================
+ * RX Callback
+ *============================================================================*/
 
 static void rx_ok_cb(const dwt_cb_data_t *cb_data)
 {
@@ -21,15 +60,19 @@ static void rx_ok_cb(const dwt_cb_data_t *cb_data)
     if (!net_parse_message(net_state.rx_buffer, cb_data->datalength, &msg))
         return;
     
-    /* Проверяем broadcast и DISCOVER */
-    if (net_is_broadcast(&msg) && 
-        msg.payload_len == sizeof(DISCOVERY_PAYLOAD) - 1 && /* Сомнительная вещь */
-        memcmp(msg.payload, DISCOVERY_PAYLOAD, msg.payload_len) == 0)
-    {
-        net_send_broadcast((const uint8_t*)RESPONSE_PAYLOAD, sizeof(RESPONSE_PAYLOAD) - 1);
+    /* Parse payload as command string (для любых сообщений, не только broadcast) */
+    if (msg.payload_len > 0 && msg.payload_len <= MAX_PAYLOAD_SIZE) {
+        char cmd_buffer[MAX_PAYLOAD_SIZE + 1];
+        memcpy(cmd_buffer, msg.payload, msg.payload_len);
+        cmd_buffer[msg.payload_len] = '\0';
+        
+        cmd_parse_result_t result = cmd_parse(cmd_buffer);
+        if (result.valid) {
+            process_anchor_command(result.code, result.args);
+        }
     }
     
-    /* Снова включаем приём */
+    /* Re-enable reception */
     dwt_rxenable(DWT_START_RX_IMMEDIATE);
 }
 
@@ -39,20 +82,20 @@ static void rx_err_cb(const dwt_cb_data_t *cb_data)
     dwt_rxenable(DWT_START_RX_IMMEDIATE);
 }
 
-void anchor_init(device_config_t* dev)
+/*==============================================================================
+ * Public Functions
+ *============================================================================*/
+
+void anchor_init(void)
 {
-    (void)dev;
-    
     port_set_deca_isr(dwt_isr);
     dwt_setcallbacks(NULL, rx_ok_cb, NULL, rx_err_cb);
     dwt_setinterrupt(DWT_INT_RFCG | DWT_INT_RPHE | DWT_INT_RFCE | DWT_INT_RFSL, 1);
     dwt_rxenable(DWT_START_RX_IMMEDIATE);
-    
-    initialized = 1;
 }
 
-void anchor_loop(device_config_t* dev)
+void anchor_loop(void)
 {
-    (void)dev;
-    /* Всё делается в прерываниях */
+    /* Everything happens in interrupts */
+    ;
 }

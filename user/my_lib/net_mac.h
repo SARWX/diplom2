@@ -11,6 +11,7 @@
 
 #define NET_PAN_ID              0xDECA
 #define NET_BROADCAST_ADDR      0xFFFF
+#define MAX_PAYLOAD_SIZE 116
 
 /*==============================================================================
  * Data Types
@@ -58,6 +59,8 @@ typedef struct {
 typedef enum {
     NET_MODE_IDLE,
     NET_MODE_ENUMERATION,
+    NET_MODE_CONFIG,
+    NET_MODE_RANGING
 } net_mode_t;
 
 typedef struct {
@@ -84,8 +87,7 @@ extern net_state_t net_state;
  * @param filter_mask - frame filtering mask
  * @return 0 on success, -1 on error
  */
-int net_init(int use_eui64, net_addr16_t short_addr, const net_eui64_t* eui64, uint16_t filter_mask);
-
+int net_init(int use_eui64, net_eui64_t* eui64, uint16_t filter_mask)
 /**
  * Get current source address (as 16-bit)
  */
@@ -178,7 +180,5 @@ int net_parse_message(uint8_t* buffer, uint16_t len, net_message_t* msg);
  * Check if message is broadcast
  */
 int net_is_broadcast(const net_message_t* msg);
-
-int set_net_mode(net_mode_t mode);
 
 #endif /* NET_MAC_H */

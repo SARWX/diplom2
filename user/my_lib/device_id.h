@@ -22,23 +22,19 @@ typedef enum {
 typedef struct device_config {
     uint32_t part_id;           /* DW1000 Part ID (уникальный идентификатор чипа) */
     device_type_t type;         /* Тип устройства */
-    net_addr16_t short_addr;    /* 16-битный короткий адрес */
     net_eui64_t eui64;          /* 64-битный EUI адрес */
     
     /* Function pointers for device behavior */
-    void (*init_func)(struct device_config* dev);
-    void (*main_loop_func)(struct device_config* dev);
-    
-    /* Network context */
-    void* net_ctx;
+    void (*init_func)(void);
+    void (*main_loop_func)(void);
 } device_config_t;
 
 /* Структура для регистрации устройства */
 typedef struct {
     uint32_t part_id;
     device_config_t* dev;
-    void (*init_func)(device_config_t*);
-    void (*loop_func)(device_config_t*);
+    void (*init_func)(void);
+    void (*loop_func)(void);
 } device_registration_t;
 
 /* Регистрация устройства с функциями */
@@ -52,6 +48,8 @@ int device_register(const device_registration_t* reg);
 extern device_config_t DEVICE_MAIN_ANCHOR;
 extern device_config_t DEVICE_ANCHOR;
 extern device_config_t DEVICE_TAG;
+
+extern device_config_t* curr_dev;
 
 /*==============================================================================
  * Serialization
@@ -78,17 +76,6 @@ int device_deserialize(const uint8_t* buffer, uint16_t buffer_size, device_confi
 /*==============================================================================
  * Device Identification
  *============================================================================*/
-
-/**
- * Get current device (local device) based on Part ID from hardware
- * @return device configuration or NULL if not found
- */
-device_config_t* device_get_current(void);
-
-/**
- * Set current device
- */
-void device_set_current(device_config_t* dev, uint32_t part_id);
 
 /**
  * Initialize current device from hardware (reads Part ID and matches predefined devices)

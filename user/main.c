@@ -65,28 +65,21 @@ int main(void)
     }
     
     /* Detect current device */
-    device_config_t* my_device = device_init_from_hardware();
-    if (!my_device) {
+    if (!device_init_from_hardware()) {
         while (1);
     }
     
     /* Initialize network */
-    // int use_eui64 = (my_device->type == DEVICE_TYPE_TAG) ? 1 : 0;
-    int use_eui64 = 0;
-    net_addr16_t short_addr = use_eui64 ? 0 : my_device->short_addr;
-    const net_eui64_t* eui64 = use_eui64 ? &my_device->eui64 : NULL;
-    
-    if (net_init(use_eui64, short_addr, eui64, DWT_FF_DATA_EN) != 0) {
-        while (1); /* not reachable now */
-    }
-    
+    if (!net_init(0, &curr_dev->eui64, DWT_FF_DATA_EN))
+        while (1);
+
     /* Run device */
-    if (my_device->init_func)
-        my_device->init_func(my_device);
+    if (curr_dev->init_func)
+        curr_dev->init_func();
     
     while (1) {
-        if (my_device->main_loop_func)
-            my_device->main_loop_func(my_device);
+        if (curr_dev->main_loop_func)
+            curr_dev->main_loop_func();
     }
     
     return 0;
