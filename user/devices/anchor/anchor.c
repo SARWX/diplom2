@@ -107,13 +107,5 @@ void anchor_init(void)
 
 void anchor_loop(void)
 {
-	sleep_ms(100);
-
-    /* Только в режиме IDLE, если нет передачи */
-    if ((dwt_read32bitreg(SYS_STATUS_ID) & SYS_STATUS_TXFRS) || 
-		(net_state.mode != NET_MODE_IDLE))
-		return;
-
-    /* Перезапускаем приёмник */
-    dwt_rxenable(DWT_START_RX_IMMEDIATE);
+    ;
 }

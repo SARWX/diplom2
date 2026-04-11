@@ -11,7 +11,9 @@
 
 #define NET_PAN_ID              0xDECA
 #define NET_BROADCAST_ADDR      0xFFFF
-#define MAX_PAYLOAD_SIZE 116
+#define MAX_PAYLOAD_SIZE        116
+#define NET_FCS_LEN             2  /* Frame Check Sequence length (CRC-16) */
+
 
 /*==============================================================================
  * Data Types

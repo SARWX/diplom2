@@ -211,7 +211,7 @@ uint16_t net_build_frame(uint8_t* buffer,
         memcpy(buffer + header_len, payload, payload_len);
     }
     
-    return header_len + payload_len;
+    return header_len + payload_len + NET_FCS_LEN;
 }
 
 /*==============================================================================
