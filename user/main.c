@@ -5,11 +5,7 @@
 #include "main_anchor.h"
 #include "anchor.h"
 #include "tag.h"
-// DEBUG DELETEME
-#include "uart.h"
-#include "stm32f10x_usart.h"
-#include "stm32f10x_rcc.h"
-#include "sleep.h"
+#include <stdlib.h>
 
 /*==============================================================================
  * Hardware Configuration
@@ -68,6 +64,8 @@ int main(void)
     if (!device_init_from_hardware()) {
         while (1);
     }
+    /* Setup rand generators for different start values */
+    srand(curr_dev->part_id);
     
     /* Initialize network */
     if (!net_init(0, &curr_dev->eui64, DWT_FF_DATA_EN))

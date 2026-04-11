@@ -18,6 +18,7 @@ static void process_anchor_command(cmd_code_t cmd, const char* args)
     
     switch (cmd) {
         case CMD_DISCOVER:
+            delay_ms((uint32_t)rand() % 1000);
             /* Response to DISCOVER from main station */
             net_send_broadcast((const uint8_t*)RESPONSE_PAYLOAD, sizeof(RESPONSE_PAYLOAD) - 1);
             break;
