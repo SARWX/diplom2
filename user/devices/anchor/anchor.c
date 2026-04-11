@@ -7,20 +7,28 @@
 
 #define DISCOVERY_PAYLOAD ((const uint8_t*)"DISCOVER")
 #define RESPONSE_PAYLOAD "A"
+#define RESPONSE_PAYLOAD_LEN (sizeof(RESPONSE_PAYLOAD) - 1)
 
 /*==============================================================================
  * Command Processing for Anchor
  *============================================================================*/
 
-static void process_anchor_command(cmd_code_t cmd, const char* args)
+static int process_anchor_command(cmd_parse_result_t *result, net_message_t *msg)
 {
-    (void)args;
-    
-    switch (cmd) {
+    if (!result->valid)
+        return -1;
+
+    switch (result->code) {
         case CMD_DISCOVER:
             delay_ms((uint32_t)rand() % 1000);
-            /* Response to DISCOVER from main station */
-            net_send_broadcast((const uint8_t*)RESPONSE_PAYLOAD, sizeof(RESPONSE_PAYLOAD) - 1);
+            /* Response UNICAST to sender (main station) */
+            if (msg->src_is_eui64) {
+                net_send_to_64bit(&msg->src_eui64, RESPONSE_PAYLOAD,
+                                                RESPONSE_PAYLOAD_LEN);
+            } else {
+                net_send_to_16bit(msg->src_addr16, RESPONSE_PAYLOAD,
+                                                RESPONSE_PAYLOAD_LEN);
+            }
             break;
             
         case CMD_CONFIG_START:
@@ -43,6 +51,8 @@ static void process_anchor_command(cmd_code_t cmd, const char* args)
             /* Unknown command - ignore */
             break;
     }
+
+    return 0;
 }
 
 /*==============================================================================
@@ -68,9 +78,7 @@ static void rx_ok_cb(const dwt_cb_data_t *cb_data)
         cmd_buffer[msg.payload_len] = '\0';
         
         cmd_parse_result_t result = cmd_parse(cmd_buffer);
-        if (result.valid) {
-            process_anchor_command(result.code, result.args);
-        }
+        process_anchor_command(&result, &msg);
     }
     
     /* Re-enable reception */
