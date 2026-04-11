@@ -12,8 +12,8 @@
 #define MAC_ADDR_LEN 6
 
 // Broadcast исследование окружения
-#define DISCOVERY_PAYLOAD ((const uint8_t*)"DISCOVER")
-#define DISCOVERY_PAYLOAD_LEN (sizeof("DISCOVER") - 1)
+#define DISCOVER_PAYLOAD ((const uint8_t*)"DISCOVER")
+#define DISCOVER_PAYLOAD_LEN (sizeof("DISCOVER") - 1)
 
 typedef struct anchor {
     uint8_t mac_address[6];

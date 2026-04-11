@@ -191,7 +191,7 @@ static int system_enumerate(void)
     /* DW1000 is half-duplex device, so we need turn off reciever before sending smt */
     dwt_forcetrxoff();
 
-    if (net_send_broadcast(DISCOVERY_PAYLOAD, DISCOVERY_PAYLOAD_LEN) < 0)
+    if (net_send_broadcast(DISCOVER_PAYLOAD, DISCOVER_PAYLOAD_LEN) < 0)
         return -1;
 
     /* listen for an answer */
