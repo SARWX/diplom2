@@ -2,14 +2,14 @@
 #include "net_mac.h"
 #include "cmd_parser.h"
 #include "deca_device_api.h"
+#include "deca_regs.h"
 #include "port.h"
 #include "sleep.h"
 #include <string.h>
 #include <stdlib.h>
 
-#define DISCOVERY_PAYLOAD ((const uint8_t*)"DISCOVER")
-#define RESPONSE_PAYLOAD "A"
-#define RESPONSE_PAYLOAD_LEN (sizeof(RESPONSE_PAYLOAD) - 1)
+#define RESPONSE_PAYLOAD ((const uint8_t*)"A")
+#define RESPONSE_PAYLOAD_LEN (sizeof("A") - 1)
 
 /*==============================================================================
  * Command Processing for Anchor
@@ -107,6 +107,13 @@ void anchor_init(void)
 
 void anchor_loop(void)
 {
-    /* Everything happens in interrupts */
-    ;
+	sleep_ms(100);
+
+    /* Только в режиме IDLE, если нет передачи */
+    if ((dwt_read32bitreg(SYS_STATUS_ID) & SYS_STATUS_TXFRS) || 
+		(net_state.mode != NET_MODE_IDLE))
+		return;
+
+    /* Перезапускаем приёмник */
+    dwt_rxenable(DWT_START_RX_IMMEDIATE);
 }

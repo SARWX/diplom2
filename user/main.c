@@ -68,7 +68,7 @@ int main(void)
     srand(curr_dev->part_id);
     
     /* Initialize network */
-    if (!net_init(0, &curr_dev->eui64, DWT_FF_DATA_EN))
+    if (net_init(0, &curr_dev->eui64, DWT_FF_DATA_EN))
         while (1);
 
     /* Run device */
