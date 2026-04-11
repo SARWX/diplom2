@@ -194,6 +194,8 @@ static int system_enumerate(void)
     if (net_send_broadcast(DISCOVERY_PAYLOAD, DISCOVERY_PAYLOAD_LEN) < 0)
         return -1;
 
+    /* listen for an answer */
+    dwt_rxenable(DWT_START_RX_IMMEDIATE);
     sleep_ms(LISTEN_AFTR_BROADCAST_MS);
 
     net_state.mode = NET_MODE_IDLE;
