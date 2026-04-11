@@ -7,8 +7,8 @@
  *============================================================================*/
 
 /* Функции по умолчанию */
-static void default_init(device_config_t* dev) { (void)dev; }
-static void default_loop(device_config_t* dev) { (void)dev; }
+static void default_init(void) { ; }
+static void default_loop(void) { ; }
 
 /* Предопределенные устройства */
 device_config_t DEVICE_MAIN_ANCHOR = {

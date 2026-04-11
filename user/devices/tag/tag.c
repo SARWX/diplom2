@@ -1,8 +1,8 @@
 #include "device_id.h"
 
-void tag_init(device_config_t* dev) {
+void tag_init(void) {
     return;
 }
-void tag_loop(device_config_t* dev) {
+void tag_loop(void) {
     return;
 }

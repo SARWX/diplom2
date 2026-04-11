@@ -87,7 +87,7 @@ extern net_state_t net_state;
  * @param filter_mask - frame filtering mask
  * @return 0 on success, -1 on error
  */
-int net_init(int use_eui64, net_eui64_t* eui64, uint16_t filter_mask)
+int net_init(int use_eui64, net_eui64_t* eui64, uint16_t filter_mask);
 /**
  * Get current source address (as 16-bit)
  */

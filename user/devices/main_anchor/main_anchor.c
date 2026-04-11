@@ -307,7 +307,7 @@ void process_command(net_devices_list_t* lst, cmd_parse_result_t cmd)
     }
     
     switch (cmd.code) {
-        case CMD_INITIALIZE_SYSTEM: handle_initialize_system(); break;
+        case CMD_INITIALIZE: handle_initialize_system(); break;
         case CMD_START:             handle_start();             break;
         case CMD_STOP:              handle_stop();              break;
         case CMD_GET_STATUS:        handle_get_status();        break;

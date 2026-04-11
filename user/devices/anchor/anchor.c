@@ -3,7 +3,9 @@
 #include "cmd_parser.h"
 #include "deca_device_api.h"
 #include "port.h"
+#include "sleep.h"
 #include <string.h>
+#include <stdlib.h>
 
 #define DISCOVERY_PAYLOAD ((const uint8_t*)"DISCOVER")
 #define RESPONSE_PAYLOAD "A"
@@ -20,7 +22,7 @@ static int process_anchor_command(cmd_parse_result_t *result, net_message_t *msg
 
     switch (result->code) {
         case CMD_DISCOVER:
-            delay_ms((uint32_t)rand() % 1000);
+            sleep_ms((uint32_t)rand() % 1000);
             /* Response UNICAST to sender (main station) */
             if (msg->src_is_eui64) {
                 net_send_to_64bit(&msg->src_eui64, RESPONSE_PAYLOAD,

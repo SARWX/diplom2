@@ -29,7 +29,7 @@ typedef struct {
     uint8_t initialized;
 } net_devices_list_t;
 
-void main_anchor_init();
-void main_anchor_loop();
+void main_anchor_init(void);
+void main_anchor_loop(void);
 
 #endif /* MAIN_ANCHOR_H */
