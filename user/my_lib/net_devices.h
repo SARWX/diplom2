@@ -7,10 +7,18 @@
 #define MAX_DISTANCES MAX_ANCHORS
 #define MAC_ADDR_LEN 6
 
+typedef enum {
+    DEVICE_TYPE_NONE = 0,
+    DEVICE_TYPE_ANCHOR = 1,
+    DEVICE_TYPE_TAG = 2,
+    DEVICE_TYPE_MAIN_ANCHOR = 3
+} net_device_type_t;
+
+
 typedef struct net_device {
     uint8_t mac_address[6];
     uint8_t seq_id;
-    uint8_t device_type;
+    net_device_type_t device_type;
     float* distances;
     struct net_device* next;
 } net_device_t;

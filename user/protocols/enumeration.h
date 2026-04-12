@@ -5,6 +5,12 @@
 #include "net_mac.h"
 #include <stdint.h>
 
+/* Константы протокола энумерации */
+#define ENUM_MAGIC_1        0xDE
+#define ENUM_MAGIC_2        0xAD
+#define ENUM_MAX_DEVICES    16
+#define ENUM_MAX_PACKET_SIZE 128
+
 /* Запуск энумерации на главной станции */
 int enumeration_start_master(net_devices_list_t* devices);
 

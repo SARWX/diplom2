@@ -28,7 +28,7 @@ net_device_t* net_device_create(const uint8_t* mac, uint8_t seq_id)
     
     memcpy(device->mac_address, mac, MAC_ADDR_LEN);
     device->seq_id = seq_id;
-    device->device_type = 0;
+    device->device_type = DEVICE_TYPE_NONE;
     device->next = NULL;
     
     device->distances = (float*)calloc(MAX_DISTANCES, sizeof(float));
