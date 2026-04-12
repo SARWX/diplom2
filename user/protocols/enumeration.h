@@ -10,6 +10,7 @@
 #define ENUM_MAGIC_2        0xAD
 #define ENUM_MAX_DEVICES    16
 #define ENUM_MAX_PACKET_SIZE 128
+#define SYNC_WAIT_MS        1000
 
 /* Запуск энумерации на главной станции */
 int enumeration_start_master(net_devices_list_t* devices);

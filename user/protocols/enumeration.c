@@ -28,6 +28,7 @@
 static uint8_t enumeration_complete = 0;
 static uint8_t retry_count = 0;
 static net_devices_list_t* enum_devices = NULL;
+static int sync_ok_count = 0;
 
 /*==============================================================================
  * Сериализация списка устройств
@@ -152,8 +153,6 @@ int enumeration_start_master(net_devices_list_t* devices)
     enum_devices = devices;
     enumeration_complete = 0;
     
-    uart_puts("\r\n=== Starting ENUMERATION ===\r\n");
-    
     for (retry_count = 0; retry_count < ENUM_RETRY_MAX; retry_count++) {
         uart_printf("Attempt %d/%d\r\n", retry_count + 1, ENUM_RETRY_MAX);
         
@@ -177,21 +176,21 @@ int enumeration_start_master(net_devices_list_t* devices)
             continue;
         }
         
-        /* 5. Отправляем список всем найденным устройствам */
-        uint8_t all_ok = 1;
-        net_device_t* current = devices->head;
-        while (current) {
-            send_device_list(devices, current->seq_id);
-            sleep_ms(500);
-            /* TODO: реализовать ожидание OK от каждого */
-            current = current->next;
-        }
-        
+        /* 5. Отправляем broadcast SYNCLIST один раз */
+        net_state.mode = NET_MODE_SYNC_WAIT;
+        sync_ok_count = 0;
+
+        send_device_list(devices, NET_BROADCAST_ADDR);  /* broadcast */
+
+        /* Ждём подтверждения */
+        sleep_ms(SYNC_WAIT_MS);
+
+        net_state.mode = NET_MODE_IDLE;
+
         /* 6. Проверяем, что все ответили OK */
-        if (all_ok) {
+        if (sync_ok_count == devices->total_anchors) {
             enumeration_complete = 1;
             devices->initialized = 1;
-            uart_puts("Enumeration completed successfully!\r\n");
             net_devices_print(devices);
             return 0;
         }
@@ -222,9 +221,19 @@ void enumeration_handle_message(net_devices_list_t* devices, net_message_t* msg)
         net_devices_clear(devices);
         
         /* Отправляем ответ в зависимости от типа устройства */
-        const uint8_t* response = ENUM_ANC_RESPONSE_PAYLOAD;
-        /* TODO: определить тип устройства (anchor/tag) */
-        
+        const uint8_t* response;
+        switch (curr_dev->type)
+        {
+        case DEVICE_TYPE_ANCHOR:
+            response = ENUM_ANC_RESPONSE_PAYLOAD;
+            break;
+        case DEVICE_TYPE_TAG:
+            response = ENUM_TAG_RESPONSE_PAYLOAD;
+            break;
+        default:
+            return;
+        }
+
         if (msg->src_is_eui64) {
             net_send_to_64bit(&msg->src_eui64, response, ENUM_RESPONSE_LEN);
         } else {
@@ -242,24 +251,18 @@ void enumeration_handle_message(net_devices_list_t* devices, net_message_t* msg)
         
         if (deserialize_device_list(&remote_list, msg->payload + ENUM_SYNC_LEN, 
                                      msg->payload_len - ENUM_SYNC_LEN) == 0) {
-            if (verify_device_list(devices, &remote_list) == 0) {
-                /* Списки совпадают */
-                const uint8_t* ok_response = ENUM_OK_PAYLOAD;
-                if (msg->src_is_eui64) {
-                    net_send_to_64bit(&msg->src_eui64, ok_response, ENUM_OK_LEN);
-                } else {
-                    net_send_to_16bit(msg->src_addr16, ok_response, ENUM_OK_LEN);
-                }
-                devices->initialized = 1;
-            } else {
-                /* Списки не совпадают */
-                const uint8_t* err_response = ENUM_ERR_PAYLOAD;
-                if (msg->src_is_eui64) {
-                    net_send_to_64bit(&msg->src_eui64, err_response, ENUM_ERR_LEN);
-                } else {
-                    net_send_to_16bit(msg->src_addr16, err_response, ENUM_ERR_LEN);
-                }
+            const uint8_t* response = ENUM_OK_PAYLOAD;
+            const uint8_t* response_len = ENUM_OK_LEN;
+            devices->initialized = 1;
+            if (verify_device_list(devices, &remote_list) != 0) {
+                response = ENUM_ERR_PAYLOAD;
+                response_len = ENUM_ERR_LEN;
+                devices->initialized = 0;
             }
+            if (msg->src_is_eui64)
+                net_send_to_64bit(&msg->src_eui64, response, response_len);
+            else
+                net_send_to_16bit(msg->src_addr16, response, response_len);
         }
         net_devices_clear(&remote_list);
         return;
@@ -267,10 +270,12 @@ void enumeration_handle_message(net_devices_list_t* devices, net_message_t* msg)
     
     /* Сохраняем ответы от других станций (A или T) */
     if (msg->payload_len >= 1 && 
-        (msg->payload[0] == 'A' || msg->payload[0] == 'T')) {
+        (msg->payload[0] == ENUM_ANC_RESPONSE_PAYLOAD ||
+                msg->payload[0] == ENUM_TAG_RESPONSE_PAYLOAD)) {
         
         uint8_t mac[MAC_ADDR_LEN] = {0};
-        uint8_t device_type = (msg->payload[0] == 'A') ? DEVICE_TYPE_ANCHOR : DEVICE_TYPE_TAG;
+        uint8_t device_type = (msg->payload[0] == ENUM_ANC_RESPONSE_PAYLOAD) ?
+                DEVICE_TYPE_ANCHOR : DEVICE_TYPE_TAG;
         
         if (msg->src_is_eui64) {
             memcpy(mac, &msg->src_eui64, MAC_ADDR_LEN);
@@ -290,6 +295,15 @@ void enumeration_handle_message(net_devices_list_t* devices, net_message_t* msg)
         } else if (existing->device_type != device_type) {
             existing->device_type = device_type;
         }
+        return;
+    }
+
+    /* OK от устройства при синхронизации */
+    if (net_state.mode == NET_MODE_SYNC_WAIT && 
+        msg->payload_len == ENUM_OK_LEN &&
+        memcmp(msg->payload, ENUM_OK_PAYLOAD, ENUM_OK_LEN) == 0) {
+        sync_ok_count++;
+        return;
     }
 }
 

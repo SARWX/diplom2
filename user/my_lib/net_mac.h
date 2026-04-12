@@ -61,6 +61,7 @@ typedef struct {
 typedef enum {
     NET_MODE_IDLE,
     NET_MODE_ENUMERATION,
+    NET_MODE_SYNC_WAIT,
     NET_MODE_CONFIG,
     NET_MODE_RANGING
 } net_mode_t;
