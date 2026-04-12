@@ -2,7 +2,7 @@
 #include "net_mac.h"
 #include "net_devices.h"
 #include "cmd_parser.h"
-#include "protocols/enumeration.h"
+#include "enumeration.h"
 #include "deca_device_api.h"
 #include "port.h"
 #include <string.h>

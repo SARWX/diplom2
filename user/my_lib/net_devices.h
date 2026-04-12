@@ -41,4 +41,6 @@ void net_devices_print(net_devices_list_t* list);
 /* Расстояния */
 void net_device_update_distance(net_device_t* device, uint8_t to_seq_id, float distance);
 
+void net_devices_set_debug(uint8_t enable);
+
 #endif /* NET_DEVICES_H */

@@ -341,7 +341,7 @@
               <MiscControls></MiscControls>
               <Define>USE_STDPERIPH_DRIVER, STM32F10X_MD, TX_BROADCAST_PROGRAM</Define>
               <Undefine></Undefine>
-              <IncludePath>.\decadriver;.\platform;.\Libraries\CMSIS\CM3\CoreSupport;.\Libraries\CMSIS\CM3\DeviceSupport\ST\STM32F10x;.\Libraries\STM32F10x_StdPeriph_Driver\inc;.\user;.\user\my_lib;.\user\devices\anchor;.\user\devices\main_anchor;.\user\devices\tag</IncludePath>
+              <IncludePath>.\decadriver;.\platform;.\Libraries\CMSIS\CM3\CoreSupport;.\Libraries\CMSIS\CM3\DeviceSupport\ST\STM32F10x;.\Libraries\STM32F10x_StdPeriph_Driver\inc;.\user;.\user\my_lib;.\user\devices\anchor;.\user\devices\main_anchor;.\user\devices\tag;.\user\protocols</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -595,6 +595,16 @@
               <FileType>1</FileType>
               <FilePath>.\user\my_lib\cmd_parser.c</FilePath>
             </File>
+            <File>
+              <FileName>net_devices.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\user\my_lib\net_devices.h</FilePath>
+            </File>
+            <File>
+              <FileName>net_devices.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\user\my_lib\net_devices.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -639,6 +649,21 @@
               <FileName>uart.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\user\devices\main_anchor\uart.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>protocols</GroupName>
+          <Files>
+            <File>
+              <FileName>enumeration.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\user\protocols\enumeration.c</FilePath>
+            </File>
+            <File>
+              <FileName>enumeration.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\user\protocols\enumeration.h</FilePath>
             </File>
           </Files>
         </Group>

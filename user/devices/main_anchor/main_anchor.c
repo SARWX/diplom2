@@ -3,7 +3,7 @@
 #include "net_mac.h"
 #include "uart.h"
 #include "cmd_parser.h"
-#include "protocols/enumeration.h"
+#include "enumeration.h"
 #include "port.h"
 #include <string.h>
 #include <stdlib.h>

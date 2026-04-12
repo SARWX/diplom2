@@ -2,6 +2,7 @@
 #define ENUMERATION_H
 
 #include "net_devices.h"
+#include "net_mac.h"
 #include <stdint.h>
 
 /* Запуск энумерации на главной станции */
