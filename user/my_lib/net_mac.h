@@ -21,7 +21,7 @@
 
 /* 64-bit EUI address */
 typedef struct {
-    uint8_t bytes[8];
+	uint8_t bytes[8];
 } net_eui64_t;
 
 /* 16-bit short address */
@@ -29,50 +29,50 @@ typedef uint16_t net_addr16_t;
 
 /* Addressing mode for source */
 typedef enum {
-    NET_ADDR_MODE_NONE = 0,
-    NET_ADDR_MODE_16BIT = 2,
-    NET_ADDR_MODE_64BIT = 3
+	NET_ADDR_MODE_NONE = 0,
+	NET_ADDR_MODE_16BIT = 2,
+	NET_ADDR_MODE_64BIT = 3
 } net_addr_mode_t;
 
 /* Parsed message structure */
 typedef struct {
-    uint8_t* data;              /* Raw frame data */
-    uint16_t len;               /* Total frame length */
-    uint8_t seq_num;            /* Sequence number */
-    
-    /* Destination */
-    uint8_t dest_is_eui64;      /* 1 if 64-bit, 0 if 16-bit */
-    union {
-        net_addr16_t dst_addr16;
-        net_eui64_t dst_eui64;
-    };
-    
-    /* Source */
-    uint8_t src_is_eui64;       /* 1 if 64-bit, 0 if 16-bit */
-    union {
-        net_addr16_t src_addr16;
-        net_eui64_t src_eui64;
-    };
-    
-    uint8_t* payload;           /* Pointer to payload */
-    uint16_t payload_len;       /* Payload length */
+	uint8_t* data;              /* Raw frame data */
+	uint16_t len;               /* Total frame length */
+	uint8_t seq_num;            /* Sequence number */
+	
+	/* Destination */
+	uint8_t dest_is_eui64;      /* 1 if 64-bit, 0 if 16-bit */
+	union {
+		net_addr16_t dst_addr16;
+		net_eui64_t dst_eui64;
+	};
+	
+	/* Source */
+	uint8_t src_is_eui64;       /* 1 if 64-bit, 0 if 16-bit */
+	union {
+		net_addr16_t src_addr16;
+		net_eui64_t src_eui64;
+	};
+	
+	uint8_t* payload;           /* Pointer to payload */
+	uint16_t payload_len;       /* Payload length */
 } net_message_t;
 
 typedef enum {
-    NET_MODE_IDLE,
-    NET_MODE_ENUMERATION,
-    NET_MODE_SYNC_WAIT,
-    NET_MODE_CONFIG,
-    NET_MODE_RANGING
+	NET_MODE_IDLE,
+	NET_MODE_ENUMERATION,
+	NET_MODE_SYNC_WAIT,
+	NET_MODE_CONFIG,
+	NET_MODE_RANGING
 } net_mode_t;
 
 typedef struct {
-    uint8_t initialized;
-    uint8_t use_eui64;
-    net_addr16_t short_addr;
-    net_eui64_t eui64;
-    uint8_t rx_buffer[128];
-    net_mode_t mode;
+	uint8_t initialized;
+	uint8_t use_eui64;
+	net_addr16_t short_addr;
+	net_eui64_t eui64;
+	uint8_t rx_buffer[128];
+	net_mode_t mode;
 } net_state_t;
 
 /* global net state */
@@ -119,7 +119,7 @@ int net_use_eui64(void);
  * @return 16-bit frame control value
  */
 uint16_t net_build_frame_control(net_addr_mode_t dest_mode, net_addr_mode_t src_mode,
-                                  int pan_id_compression, int ack_request);
+								  int pan_id_compression, int ack_request);
 
 /**
  * Build MAC header (only header, no payload)
@@ -130,16 +130,16 @@ uint16_t net_build_frame_control(net_addr_mode_t dest_mode, net_addr_mode_t src_
  * @return header length
  */
 uint16_t net_build_header(uint8_t* buffer,
-                          const net_eui64_t* dest_eui, net_addr16_t dest_addr16,
-                          uint8_t seq_num);
+						  const net_eui64_t* dest_eui, net_addr16_t dest_addr16,
+						  uint8_t seq_num);
 
 /**
  * Build complete frame (header + payload)
  */
 uint16_t net_build_frame(uint8_t* buffer,
-                         const net_eui64_t* dest_eui, net_addr16_t dest_addr16,
-                         uint8_t seq_num,
-                         const uint8_t* payload, uint16_t payload_len);
+						 const net_eui64_t* dest_eui, net_addr16_t dest_addr16,
+						 uint8_t seq_num,
+						 const uint8_t* payload, uint16_t payload_len);
 
 /*==============================================================================
  * Transmission

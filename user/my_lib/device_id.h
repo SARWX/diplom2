@@ -9,10 +9,10 @@
  *============================================================================*/
 
 typedef enum {
-    DEVICE_TYPE_NONE = 0,
-    DEVICE_TYPE_MAIN_ANCHOR,    /* Главная базовая станция */
-    DEVICE_TYPE_ANCHOR,          /* Базовая станция */
-    DEVICE_TYPE_TAG              /* Устройство-метка */
+	DEVICE_TYPE_NONE = 0,
+	DEVICE_TYPE_MAIN_ANCHOR,    /* Главная базовая станция */
+	DEVICE_TYPE_ANCHOR,          /* Базовая станция */
+	DEVICE_TYPE_TAG              /* Устройство-метка */
 } device_type_t;
 
 /*==============================================================================
@@ -20,21 +20,21 @@ typedef enum {
  *============================================================================*/
 
 typedef struct device_config {
-    uint32_t part_id;           /* DW1000 Part ID (уникальный идентификатор чипа) */
-    device_type_t type;         /* Тип устройства */
-    net_eui64_t eui64;          /* 64-битный EUI адрес */
-    
-    /* Function pointers for device behavior */
-    void (*init_func)(void);
-    void (*main_loop_func)(void);
+	uint32_t part_id;           /* DW1000 Part ID (уникальный идентификатор чипа) */
+	device_type_t type;         /* Тип устройства */
+	net_eui64_t eui64;          /* 64-битный EUI адрес */
+	
+	/* Function pointers for device behavior */
+	void (*init_func)(void);
+	void (*main_loop_func)(void);
 } device_config_t;
 
 /* Структура для регистрации устройства */
 typedef struct {
-    uint32_t part_id;
-    device_config_t* dev;
-    void (*init_func)(void);
-    void (*loop_func)(void);
+	uint32_t part_id;
+	device_config_t* dev;
+	void (*init_func)(void);
+	void (*loop_func)(void);
 } device_registration_t;
 
 /* Регистрация устройства с функциями */

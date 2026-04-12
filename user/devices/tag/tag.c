@@ -1,8 +1,8 @@
 #include "device_id.h"
 
 void tag_init(void) {
-    return;
+	return;
 }
 void tag_loop(void) {
-    return;
+	return;
 }

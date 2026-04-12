@@ -9,17 +9,17 @@
 #define MAC_ADDR_LEN 6
 
 typedef struct net_device {
-    uint8_t mac_address[6];
-    uint8_t seq_id;
-    device_type_t device_type;
-    float* distances;
-    struct net_device* next;
+	uint8_t mac_address[6];
+	uint8_t seq_id;
+	device_type_t device_type;
+	float* distances;
+	struct net_device* next;
 } net_device_t;
 
 typedef struct {
-    net_device_t* head;
-    uint8_t total_anchors;
-    uint8_t initialized;
+	net_device_t* head;
+	uint8_t total_anchors;
+	uint8_t initialized;
 } net_devices_list_t;
 
 /* Инициализация */
