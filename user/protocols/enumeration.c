@@ -242,7 +242,7 @@ static void handle_sync_list(net_devices_list_t* devices, net_message_t* msg)
 	if (deserialize_device_list(&remote_list, msg->payload + ENUM_SYNC_LEN, 
 									msg->payload_len - ENUM_SYNC_LEN) == 0) {
 		const uint8_t* response = ENUM_OK_PAYLOAD;
-		const uint8_t* response_len = ENUM_OK_LEN;
+		uint16_t response_len = ENUM_OK_LEN;
 		devices->initialized = 1;
 		if (verify_device_list(devices, &remote_list) != 0) {
 			response = ENUM_ERR_PAYLOAD;
@@ -267,7 +267,7 @@ static void handle_ok(net_message_t* msg)
 static void handle_device_response(net_devices_list_t* devices, net_message_t* msg)
 {
 	uint8_t mac[MAC_ADDR_LEN] = {0};
-	uint8_t device_type = (msg->payload[0] == ENUM_ANC_RESPONSE_PAYLOAD) ?
+	uint8_t device_type = (msg->payload[0] == 'A') ?
 			DEVICE_TYPE_ANCHOR : DEVICE_TYPE_TAG;
 	
 	if (msg->src_is_eui64) {
@@ -304,10 +304,9 @@ void enumeration_handle_message(net_devices_list_t* devices, net_message_t* msg)
 		case CMD_OK:         handle_ok(msg); break;
 		case CMD_ERR:        /* handle error */ break; /* not really needed */
 		default:    
-			if (msg->payload_len >= 1 && (msg->payload[0] == 
-				ENUM_ANC_RESPONSE_PAYLOAD || msg->payload[0] ==
-				ENUM_TAG_RESPONSE_PAYLOAD)) {
-				handle_anchor_response(devices, msg);
+			if (msg->payload_len >= 1 && (msg->payload[0] == 'A' || 
+                                                msg->payload[0] == 'T')) {
+				handle_device_response(devices, msg);
 			}
 		}
 }
