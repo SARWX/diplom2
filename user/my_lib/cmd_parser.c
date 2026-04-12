@@ -29,8 +29,6 @@ static const cmd_map_t cmd_table[] = {
     
     /* Config commands */
     {"SET_PARAM",       CMD_SET_PARAM},
-    {"SAVE_CONFIG",     CMD_SAVE_CONFIG},
-    {"LOAD_CONFIG",     CMD_LOAD_CONFIG},
     {"CALIBRATE",       CMD_CALIBRATE},
     
     /* Anchor specific commands */
@@ -39,6 +37,11 @@ static const cmd_map_t cmd_table[] = {
     {"CONFIG_STOP",     CMD_CONFIG_STOP},
     {"RANGING_START",   CMD_RANGING_START},
     {"RANGING_STOP",    CMD_RANGING_STOP},
+
+    /* Enumeration commands */
+    {"SYNC_LIST",       CMD_SYNC_LIST},
+    {"OK",              CMD_OK},
+    {"ERR",             CMD_ERR},
 };
 
 #define CMD_TABLE_SIZE (sizeof(cmd_table) / sizeof(cmd_map_t))

@@ -18,7 +18,7 @@ void net_devices_init(net_devices_list_t* list)
     list->initialized = 0;
 }
 
-net_device_t* net_device_create(const uint8_t* mac, uint8_t seq_id)
+net_device_t* net_device_create(const uint8_t* mac, uint8_t seq_id, device_type_t device_type)
 {
     net_device_t* device = (net_device_t*)malloc(sizeof(net_device_t));
     if (!device) {
@@ -28,7 +28,7 @@ net_device_t* net_device_create(const uint8_t* mac, uint8_t seq_id)
     
     memcpy(device->mac_address, mac, MAC_ADDR_LEN);
     device->seq_id = seq_id;
-    device->device_type = DEVICE_TYPE_NONE;
+    device->device_type = device_type;
     device->next = NULL;
     
     device->distances = (float*)calloc(MAX_DISTANCES, sizeof(float));

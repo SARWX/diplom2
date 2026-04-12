@@ -38,6 +38,11 @@ typedef enum {
     CMD_CONFIG_STOP,
     CMD_RANGING_START,
     CMD_RANGING_STOP,
+
+    /* Enumeration commands */
+    CMD_SYNC_LIST,
+    CMD_OK,
+    CMD_ERR,
     
     CMD_COUNT
 } cmd_code_t;
