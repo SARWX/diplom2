@@ -1,5 +1,6 @@
 #include "enumeration.h"
 #include "net_mac.h"
+#include "device_id.h"
 #include "sleep.h"
 #include "uart.h"
 #include <string.h>
