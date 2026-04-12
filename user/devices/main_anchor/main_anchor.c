@@ -3,48 +3,13 @@
 #include "net_mac.h"
 #include "uart.h"
 #include "cmd_parser.h"
-#include "sleep.h"
+#include "protocols/enumeration.h"
 #include "port.h"
 #include <string.h>
 #include <stdlib.h>
 
-#define DISCOVERY_PAYLOAD ((const uint8_t*)"DISCOVER")
-#define DISCOVERY_PAYLOAD_LEN (sizeof("DISCOVER") - 1)
-#define LISTEN_AFTR_BROADCAST_MS 2000
-
 static net_devices_list_t devices;
 static uint8_t debug_enabled = 0;
-
-#define debug_printf(...) do { if (debug_enabled) uart_printf(__VA_ARGS__); } while(0)
-
-/*==============================================================================
- * System Management
- *============================================================================*/
-
-static int system_enumerate(void)
-{
-    uart_puts("\r\n=== Starting ENUMERATION ===\r\n");
-
-    net_devices_init(&devices);
-    net_state.mode = NET_MODE_ENUMERATION;
-
-    dwt_forcetrxoff();
-    
-    if (net_send_broadcast(DISCOVERY_PAYLOAD, DISCOVERY_PAYLOAD_LEN) < 0)
-        return -1;
-
-    dwt_rxenable(DWT_START_RX_IMMEDIATE);
-    sleep_ms(LISTEN_AFTR_BROADCAST_MS);
-    net_state.mode = NET_MODE_IDLE;
-
-    devices.initialized = 1;
-
-    uart_puts("Enumeration completed\r\n");
-    net_devices_print(&devices);
-    uart_puts("===============================\r\n\r\n");
-
-    return 0;
-}
 
 /*==============================================================================
  * Command Handlers
@@ -54,11 +19,7 @@ static void handle_initialize(void)
 {
     uart_puts("\r\n>>> Handling INITIALIZE command\r\n");
     
-    if (devices.initialized) {
-        net_devices_clear(&devices);
-    }
-    
-    if (system_enumerate() == 0) {
+    if (enumeration_start_master(&devices) == 0) {
         uart_puts("System initialized successfully\r\n");
     } else {
         uart_puts("ERROR: System initialization failed\r\n");
@@ -124,21 +85,8 @@ static void rx_ok_cb(const dwt_cb_data_t *cb_data)
     if (!net_parse_message(net_state.rx_buffer, cb_data->datalength, &msg))
         return;
 
-    if (net_state.mode == NET_MODE_ENUMERATION && msg.payload_len >= 1 && msg.payload[0] == 'A') {
-        uint8_t mac[MAC_ADDR_LEN] = {0};
-        
-        if (msg.src_is_eui64) {
-            memcpy(mac, &msg.src_eui64, MAC_ADDR_LEN);
-        } else {
-            mac[0] = msg.src_addr16 & 0xFF;
-            mac[1] = (msg.src_addr16 >> 8) & 0xFF;
-        }
-        
-        net_device_t* device = net_device_create(mac, 0);
-        if (device) {
-            net_device_add(&devices, device);
-        }
-    }
+    /* Передаём сообщение модулю энумерации */
+    enumeration_handle_message(&devices, &msg);
     
     dwt_rxenable(DWT_START_RX_IMMEDIATE);
 }
@@ -162,6 +110,8 @@ void main_anchor_init(void)
     dwt_setinterrupt(DWT_INT_RFCG | DWT_INT_RPHE | DWT_INT_RFCE | DWT_INT_RFSL, 1);
     dwt_rxenable(DWT_START_RX_IMMEDIATE);
 
+    net_devices_init(&devices);
+    
     uart_puts("\r\n========================================\r\n");
     uart_puts("Main Anchor Station\r\n");
     uart_puts("========================================\r\n");
