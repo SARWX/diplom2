@@ -7,22 +7,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define ENUM_DISCOVER_PAYLOAD ((const uint8_t*)"DSCVR")
-#define ENUM_DISCOVER_LEN (sizeof("DSCVR") - 1)
-
-#define ENUM_ANC_RESPONSE_PAYLOAD ((const uint8_t*)"A")
-#define ENUM_TAG_RESPONSE_PAYLOAD ((const uint8_t*)"T")
-#define ENUM_RESPONSE_LEN (sizeof("X") - 1)
-
-#define ENUM_SYNC_PAYLOAD ((const uint8_t*)"SYNC")
-#define ENUM_SYNC_LEN (sizeof("SYNC") - 1)
-
-#define ENUM_OK_PAYLOAD ((const uint8_t*)"OK")
-#define ENUM_OK_LEN (sizeof("OK") - 1)
-
-#define ENUM_ERR_PAYLOAD ((const uint8_t*)"ERR")
-#define ENUM_ERR_LEN (sizeof("ERR") - 1)
-
 #define ENUM_LISTEN_MS 2000
 #define ENUM_RETRY_MAX 3
 
@@ -112,10 +96,11 @@ static int send_device_list(net_devices_list_t* devices, net_addr16_t dst_addr)
 	
 	serialize_device_list(devices, buffer, &len);
 	
-	/* Отправляем с префиксом SYNC */
+	/* Отправляем с префиксом SYNC_LIST */
 	uint8_t packet[ENUM_MAX_PACKET_SIZE + ENUM_SYNC_LEN];
 	memcpy(packet, ENUM_SYNC_PAYLOAD, ENUM_SYNC_LEN);
-	memcpy(packet + ENUM_SYNC_LEN, buffer, len);
+	packet[ENUM_SYNC_LEN] = ' ';  /* Разделитель */
+	memcpy(packet + ENUM_SYNC_LEN + 1, buffer, len);
 	
 	return net_send_to_16bit(dst_addr, packet, ENUM_SYNC_LEN + len);
 }
@@ -305,7 +290,7 @@ void enumeration_handle_message(net_devices_list_t* devices, net_message_t* msg)
 		case CMD_ERR:        /* handle error */ break; /* not really needed */
 		default:    
 			if (msg->payload_len >= 1 && (msg->payload[0] == 'A' || 
-                                                msg->payload[0] == 'T')) {
+						msg->payload[0] == 'T')) {
 				handle_device_response(devices, msg);
 			}
 		}

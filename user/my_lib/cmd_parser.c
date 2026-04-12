@@ -8,40 +8,47 @@
 
 typedef struct {
 	const char* str;
+	uint8_t len;
 	cmd_code_t code;
 } cmd_map_t;
 
+#define CMD_STR(cmd) (cmd_table[cmd].str)
+#define CMD_LEN(cmd) (cmd_table[cmd].len)
+
 static const cmd_map_t cmd_table[] = {
+	/* First command is UNKNOWN */
+	{"UNKNOWN",         7,  CMD_UNKNOWN},
+
 	/* System commands */
-	{"INITIALIZE",      CMD_INITIALIZE},
-	{"RECONFIGURE",     CMD_RECONFIGURE},
-	{"START",           CMD_START},
-	{"STOP",            CMD_STOP},
-	{"RESET",           CMD_RESET},
-	
+	{"INITIALIZE",      10, CMD_INITIALIZE},
+	{"RECONFIGURE",     10, CMD_RECONFIGURE},
+	{"START",           5,  CMD_START},
+	{"STOP",            4,  CMD_STOP},
+	{"RESET",           5,  CMD_RESET},
+
 	/* Status commands */
-	{"GET_STATUS",      CMD_GET_STATUS},
-	{"GET_CONFIG",      CMD_GET_CONFIG},
-	
+	{"GET_STATUS",      10, CMD_GET_STATUS},
+	{"GET_CONFIG",      10, CMD_GET_CONFIG},
+
 	/* Debug commands */
-	{"DEBUG_ON",        CMD_DEBUG_ON},
-	{"DEBUG_OFF",       CMD_DEBUG_OFF},
-	
+	{"DEBUG_ON",        8,  CMD_DEBUG_ON},
+	{"DEBUG_OFF",       8,  CMD_DEBUG_OFF},
+
 	/* Config commands */
-	{"SET_PARAM",       CMD_SET_PARAM},
-	{"CALIBRATE",       CMD_CALIBRATE},
-	
+	{"SET_PARAM",       9,  CMD_SET_PARAM},
+	{"CALIBRATE",       9,  CMD_CALIBRATE},
+
 	/* Anchor specific commands */
-	{"DISCOVER",        CMD_DISCOVER},
-	{"CONFIG_START",    CMD_CONFIG_START},
-	{"CONFIG_STOP",     CMD_CONFIG_STOP},
-	{"RANGING_START",   CMD_RANGING_START},
-	{"RANGING_STOP",    CMD_RANGING_STOP},
+	{"CONFIG_START",    11, CMD_CONFIG_START},
+	{"CONFIG_STOP",     10, CMD_CONFIG_STOP},
+	{"RANGING_START",   12, CMD_RANGING_START},
+	{"RANGING_STOP",    11, CMD_RANGING_STOP},
 
 	/* Enumeration commands */
-	{"SYNC_LIST",       CMD_SYNC_LIST},
-	{"OK",              CMD_OK},
-	{"ERR",             CMD_ERR},
+	{"DSCVR",           5,  CMD_DISCOVER},
+	{"SYNC_LIST",       8,  CMD_SYNC_LIST},
+	{"OK",              2,  CMD_OK},
+	{"ERR",             3,  CMD_ERR},
 };
 
 #define CMD_TABLE_SIZE (sizeof(cmd_table) / sizeof(cmd_map_t))
@@ -146,6 +153,7 @@ cmd_parse_result_t cmd_parse(const char* buffer)
 	return result;
 }
 
+#define CMD_STR_LEN(cmd) (sizeof(cmd_to_string(cmd)) - 1)
 const char* cmd_to_string(cmd_code_t cmd)
 {
 	for (size_t i = 0; i < CMD_TABLE_SIZE; i++) {
@@ -153,5 +161,14 @@ const char* cmd_to_string(cmd_code_t cmd)
 			return cmd_table[i].str;
 		}
 	}
-	return "UNKNOWN";
+	return cmd_table[CMD_UNKNOWN].str;
+}
+
+uint8_t cmd_get_length(cmd_code_t cmd)
+{
+	for (size_t i = 0; i < CMD_TABLE_SIZE; i++) {
+		if (cmd_table[i].code == cmd)
+		return cmd_table[i].len;
+	}
+	return cmd_table[CMD_UNKNOWN].len;
 }

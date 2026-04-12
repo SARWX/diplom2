@@ -9,8 +9,7 @@
  *============================================================================*/
 
 typedef enum {
-	CMD_UNKNOWN = 0,
-	
+        CMD_UNKNOWN = 0,
 	/* System commands */
 	CMD_INITIALIZE,
 	CMD_RECONFIGURE,
@@ -28,22 +27,21 @@ typedef enum {
 	
 	/* Config commands */
 	CMD_SET_PARAM,
-	CMD_SAVE_CONFIG,
-	CMD_LOAD_CONFIG,
 	CMD_CALIBRATE,
 	
 	/* Anchor specific commands */
-	CMD_DISCOVER,
 	CMD_CONFIG_START,
 	CMD_CONFIG_STOP,
 	CMD_RANGING_START,
 	CMD_RANGING_STOP,
 
 	/* Enumeration commands */
+        CMD_DISCOVER,
 	CMD_SYNC_LIST,
 	CMD_OK,
 	CMD_ERR,
-	
+
+        /* must be last command */
 	CMD_COUNT
 } cmd_code_t;
 
