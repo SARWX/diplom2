@@ -64,7 +64,7 @@ static void process_command(cmd_parse_result_t cmd)
 		case CMD_DEBUG_ON:      handle_debug(1); break;
 		case CMD_DEBUG_OFF:     handle_debug(0); break;
 		default:
-			uart_printf("Command not implemented: %s\r\n", cmd_to_string(cmd.code));
+			uart_printf("Command not implemented: %s\r\n", cmd_s(cmd.code));
 			break;
 	}
 }

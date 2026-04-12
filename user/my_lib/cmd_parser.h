@@ -61,6 +61,7 @@ typedef struct {
  *============================================================================*/
 
 cmd_parse_result_t cmd_parse(const char* buffer);
-const char* cmd_to_string(cmd_code_t cmd);
+const char* cmd_s(cmd_code_t cmd);
+uint8_t cmd_l(cmd_code_t cmd);
 
 #endif /* CMD_PARSER_H */

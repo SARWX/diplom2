@@ -153,8 +153,7 @@ cmd_parse_result_t cmd_parse(const char* buffer)
 	return result;
 }
 
-#define CMD_STR_LEN(cmd) (sizeof(cmd_to_string(cmd)) - 1)
-const char* cmd_to_string(cmd_code_t cmd)
+const char* cmd_s(cmd_code_t cmd)
 {
 	for (size_t i = 0; i < CMD_TABLE_SIZE; i++) {
 		if (cmd_table[i].code == cmd) {
@@ -164,7 +163,7 @@ const char* cmd_to_string(cmd_code_t cmd)
 	return cmd_table[CMD_UNKNOWN].str;
 }
 
-uint8_t cmd_get_length(cmd_code_t cmd)
+uint8_t cmd_l(cmd_code_t cmd)
 {
 	for (size_t i = 0; i < CMD_TABLE_SIZE; i++) {
 		if (cmd_table[i].code == cmd)

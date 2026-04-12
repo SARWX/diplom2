@@ -97,12 +97,13 @@ static int send_device_list(net_devices_list_t* devices, net_addr16_t dst_addr)
 	serialize_device_list(devices, buffer, &len);
 	
 	/* Отправляем с префиксом SYNC_LIST */
-	uint8_t packet[ENUM_MAX_PACKET_SIZE + ENUM_SYNC_LEN];
-	memcpy(packet, ENUM_SYNC_PAYLOAD, ENUM_SYNC_LEN);
-	packet[ENUM_SYNC_LEN] = ' ';  /* Разделитель */
-	memcpy(packet + ENUM_SYNC_LEN + 1, buffer, len);
+	uint8_t sync_len = cmd_l(CMD_SYNC_LIST);
+	uint8_t packet[ENUM_MAX_PACKET_SIZE + sync_len];
+	memcpy(packet, cmd_s(CMD_SYNC_LIST), cmd_l(CMD_SYNC_LIST));
+	packet[sync_len] = ' ';  /* Разделитель */
+	memcpy(packet + sync_len + 1, buffer, len);
 	
-	return net_send_to_16bit(dst_addr, packet, ENUM_SYNC_LEN + len);
+	return net_send_to_16bit(dst_addr, packet, sync_len + len);
 }
 
 static int verify_device_list(net_devices_list_t* local, net_devices_list_t* remote)
@@ -143,7 +144,8 @@ int enumeration_start_master(net_devices_list_t* devices)
 		
 		/* 2. Отправляем DISCOVER */
 		dwt_forcetrxoff();
-		if (net_send_broadcast(ENUM_DISCOVER_PAYLOAD, ENUM_DISCOVER_LEN) < 0) {
+		if (net_send_broadcast((const uint8_t*)cmd_s(
+			CMD_DISCOVER), cmd_l(CMD_DISCOVER)) < 0) {
 			continue;
 		}
 		
@@ -202,20 +204,19 @@ static void handle_discover(net_devices_list_t* devices, net_message_t* msg)
 	switch (curr_dev->type)
 	{
 	case DEVICE_TYPE_ANCHOR:
-		response = ENUM_ANC_RESPONSE_PAYLOAD;
+		response = (const uint8_t*)"A";
 		break;
 	case DEVICE_TYPE_TAG:
-		response = ENUM_TAG_RESPONSE_PAYLOAD;
+		response = (const uint8_t*)"T";
 		break;
 	default:
 		return;
 	}
 
-	if (msg->src_is_eui64) {
-		net_send_to_64bit(&msg->src_eui64, response, ENUM_RESPONSE_LEN);
-	} else {
-		net_send_to_16bit(msg->src_addr16, response, ENUM_RESPONSE_LEN);
-	}
+	if (msg->src_is_eui64)
+		net_send_to_64bit(&msg->src_eui64, response, 1);
+	else
+		net_send_to_16bit(msg->src_addr16, response, 1);
 	return;
 }
 
@@ -224,23 +225,27 @@ static void handle_sync_list(net_devices_list_t* devices, net_message_t* msg)
 	net_devices_list_t remote_list;
 	net_devices_init(&remote_list);
 	
-	if (deserialize_device_list(&remote_list, msg->payload + ENUM_SYNC_LEN, 
-									msg->payload_len - ENUM_SYNC_LEN) == 0) {
-		const uint8_t* response = ENUM_OK_PAYLOAD;
-		uint16_t response_len = ENUM_OK_LEN;
+	uint8_t sync_len = cmd_l(CMD_SYNC_LIST);
+	
+	if (deserialize_device_list(&remote_list, msg->payload + sync_len, 
+					msg->payload_len - sync_len) == 0) {
+		cmd_code_t response_cmd = CMD_OK;
 		devices->initialized = 1;
+		
 		if (verify_device_list(devices, &remote_list) != 0) {
-			response = ENUM_ERR_PAYLOAD;
-			response_len = ENUM_ERR_LEN;
+			response_cmd = CMD_ERR;
 			devices->initialized = 0;
 		}
+		
+		const uint8_t* response = (const uint8_t*)cmd_s(response_cmd);
+		uint16_t response_len = cmd_l(response_cmd);
+		
 		if (msg->src_is_eui64)
 			net_send_to_64bit(&msg->src_eui64, response, response_len);
 		else
 			net_send_to_16bit(msg->src_addr16, response, response_len);
 	}
 	net_devices_clear(&remote_list);
-	return;
 }
 
 static void handle_ok(net_message_t* msg)
