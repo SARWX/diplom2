@@ -153,6 +153,7 @@ int enumeration_start_master(net_devices_list_t* devices)
 		net_state.mode = NET_MODE_ENUMERATION;
 		dwt_rxenable(DWT_START_RX_IMMEDIATE);
 		sleep_ms(ENUM_LISTEN_MS);
+		dwt_forcetrxoff();
 		
 		/* 4. Если никто не ответил - пробуем ещё */
 		if (devices->total_anchors == 0) {

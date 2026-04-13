@@ -167,5 +167,5 @@ uint8_t cmd_len(cmd_code_t cmd)
 
 uint8_t cmd_size(cmd_code_t cmd)
 {
-    return cmd_l(cmd) + 1; /* add NULL-terminator */
+    return cmd_len(cmd) + 1; /* add NULL-terminator */
 }
