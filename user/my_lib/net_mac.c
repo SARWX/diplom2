@@ -366,4 +366,3 @@ int net_is_broadcast(const net_message_t* msg)
 	if (msg->dest_is_eui64) return 0;
 	return (msg->dst_addr16 == NET_BROADCAST_ADDR);
 }
-

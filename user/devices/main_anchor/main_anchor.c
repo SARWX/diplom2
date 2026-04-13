@@ -85,6 +85,9 @@ static void rx_ok_cb(const dwt_cb_data_t *cb_data)
 	if (!net_parse_message(net_state.rx_buffer, cb_data->datalength, &msg))
 		return;
 
+	/* SS TWR handling first */
+	ss_twr_handle_rx_frame(&msg);
+
 	switch (net_state.mode)
 	{
 	case NET_MODE_ENUMERATION:
