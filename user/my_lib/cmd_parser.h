@@ -52,7 +52,6 @@ typedef enum {
 typedef struct {
 	cmd_code_t code;
 	char* args;           /* Arguments after command (if any) */
-	size_t args_len;      /* Length of arguments */
 	uint8_t valid;        /* 1 if command recognized */
 } cmd_parse_result_t;
 
@@ -61,7 +60,8 @@ typedef struct {
  *============================================================================*/
 
 cmd_parse_result_t cmd_parse(const char* buffer);
-const char* cmd_s(cmd_code_t cmd);
-uint8_t cmd_l(cmd_code_t cmd);
+const char* cmd_str(cmd_code_t cmd);
+uint8_t cmd_len(cmd_code_t cmd);
+uint8_t cmd_size(cmd_code_t cmd);
 
 #endif /* CMD_PARSER_H */

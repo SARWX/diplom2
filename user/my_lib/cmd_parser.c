@@ -85,7 +85,6 @@ cmd_parse_result_t cmd_parse(const char* buffer)
 	cmd_parse_result_t result;
 	result.code = CMD_UNKNOWN;
 	result.args = NULL;
-	result.args_len = 0;
 	result.valid = 0;
 	
 	if (!buffer || buffer[0] == '\0') {
@@ -115,12 +114,7 @@ cmd_parse_result_t cmd_parse(const char* buffer)
 	for (size_t i = 0; i < buffer_len; i++) {
 		if (cmd_buffer[i] == ' ' || cmd_buffer[i] == '\t') {
 			cmd_len = i;
-			while (i < buffer_len && (cmd_buffer[i] == ' ' || cmd_buffer[i] == '\t')) {
-				i++;
-			}
-			if (i < buffer_len) {
-				args_start = cmd_buffer + i;
-			}
+			args_start = cmd_buffer + i;
 			break;
 		}
 	}
@@ -147,13 +141,12 @@ cmd_parse_result_t cmd_parse(const char* buffer)
 	/* Store arguments if any */
 	if (args_start && result.valid) {
 		result.args = (char*)args_start;
-		result.args_len = strlen(args_start);
 	}
 	
 	return result;
 }
 
-const char* cmd_s(cmd_code_t cmd)
+const char* cmd_str(cmd_code_t cmd)
 {
 	for (size_t i = 0; i < CMD_TABLE_SIZE; i++) {
 		if (cmd_table[i].code == cmd) {
@@ -163,11 +156,16 @@ const char* cmd_s(cmd_code_t cmd)
 	return cmd_table[CMD_UNKNOWN].str;
 }
 
-uint8_t cmd_l(cmd_code_t cmd)
+uint8_t cmd_len(cmd_code_t cmd)
 {
 	for (size_t i = 0; i < CMD_TABLE_SIZE; i++) {
 		if (cmd_table[i].code == cmd)
 		return cmd_table[i].len;
 	}
 	return cmd_table[CMD_UNKNOWN].len;
+}
+
+uint8_t cmd_size(cmd_code_t cmd)
+{
+    return cmd_l(cmd) + 1; /* add NULL-terminator */
 }

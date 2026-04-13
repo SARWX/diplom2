@@ -97,9 +97,9 @@ static int send_device_list(net_devices_list_t* devices, net_addr16_t dst_addr)
 	serialize_device_list(devices, buffer, &len);
 	
 	/* Отправляем с префиксом SYNC_LIST */
-	uint8_t sync_len = cmd_l(CMD_SYNC_LIST);
+	uint8_t sync_len = cmd_len(CMD_SYNC_LIST);
 	uint8_t packet[ENUM_MAX_PACKET_SIZE + sync_len];
-	memcpy(packet, cmd_s(CMD_SYNC_LIST), cmd_l(CMD_SYNC_LIST));
+	memcpy(packet, cmd_str(CMD_SYNC_LIST), sync_len);
 	packet[sync_len] = ' ';  /* Разделитель */
 	memcpy(packet + sync_len + 1, buffer, len);
 	
@@ -144,8 +144,8 @@ int enumeration_start_master(net_devices_list_t* devices)
 		
 		/* 2. Отправляем DISCOVER */
 		dwt_forcetrxoff();
-		if (net_send_broadcast((const uint8_t*)cmd_s(
-			CMD_DISCOVER), cmd_l(CMD_DISCOVER)) < 0) {
+		if (net_send_broadcast((const uint8_t*)cmd_str(
+			CMD_DISCOVER), cmd_size(CMD_DISCOVER)) < 0) {
 			continue;
 		}
 		
@@ -225,7 +225,8 @@ static void handle_sync_list(net_devices_list_t* devices, net_message_t* msg)
 	net_devices_list_t remote_list;
 	net_devices_init(&remote_list);
 	
-	uint8_t sync_len = cmd_l(CMD_SYNC_LIST);
+	uint8_t sync_len = cmd_len(CMD_SYNC_LIST);
+	sync_len += 1; /* space separator */
 	
 	if (deserialize_device_list(&remote_list, msg->payload + sync_len, 
 					msg->payload_len - sync_len) == 0) {
@@ -237,13 +238,13 @@ static void handle_sync_list(net_devices_list_t* devices, net_message_t* msg)
 			devices->initialized = 0;
 		}
 		
-		const uint8_t* response = (const uint8_t*)cmd_s(response_cmd);
-		uint16_t response_len = cmd_l(response_cmd);
+		const uint8_t* response = (const uint8_t*)cmd_str(response_cmd);
+		uint16_t response_size = cmd_size(response_cmd);
 		
 		if (msg->src_is_eui64)
-			net_send_to_64bit(&msg->src_eui64, response, response_len);
+			net_send_to_64bit(&msg->src_eui64, response, response_size);
 		else
-			net_send_to_16bit(msg->src_addr16, response, response_len);
+			net_send_to_16bit(msg->src_addr16, response, response_size);
 	}
 	net_devices_clear(&remote_list);
 }
@@ -293,7 +294,7 @@ void enumeration_handle_message(net_devices_list_t* devices, net_message_t* msg)
 		case CMD_SYNC_LIST:  handle_sync_list(devices, msg); break;
 		case CMD_OK:         handle_ok(msg); break;
 		case CMD_ERR:        /* handle error */ break; /* not really needed */
-		default:    
+		default:
 			if (msg->payload_len >= 1 && (msg->payload[0] == 'A' || 
 						msg->payload[0] == 'T')) {
 				handle_device_response(devices, msg);
