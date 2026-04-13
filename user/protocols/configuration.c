@@ -130,6 +130,28 @@ int configuration_start_master(net_devices_list_t* devices)
 }
 
 /*==============================================================================
+ * Измерение расстояний
+ *============================================================================*/
+static void perform_measurements(net_devices_list_t* devices, uint8_t my_seq_id)
+{
+    net_device_t* target = devices->head;
+    
+    while (target) {
+        if (target->seq_id != my_seq_id) {
+            float distance;
+            if (ss_twr_measure_distance(target->seq_id, &distance) == 0) {
+                net_device_t* my_device = net_device_find_by_seq(devices, my_seq_id);
+                if (my_device) {
+                    net_device_update_distance(my_device, target->seq_id, distance);
+                }
+            }
+            sleep_ms(50);
+        }
+        target = target->next;
+    }
+}
+
+/*==============================================================================
  * Обработка сообщений (для любой станции)
  *============================================================================*/
 
@@ -147,7 +169,7 @@ void configuration_handle_message(net_devices_list_t* devices, net_message_t* ms
 		case CMD_CONFIG_START:
 			/* Анкер получил запрос на конфигурацию */
 			net_state.mode = NET_MODE_CONFIG;
-			/* ТУТ надо НАПИСАТЬ ФУНКЦИЮ ИЗМЕРЕНИЙ  РАССТОЯНИЙ */
+			perform_measurements(devices, msg->src_addr16);
 			send_measurements(devices, msg->src_addr16);
 			break;
 		
