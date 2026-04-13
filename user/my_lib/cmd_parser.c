@@ -21,7 +21,7 @@ static const cmd_map_t cmd_table[] = {
 
 	/* System commands */
 	{"INITIALIZE",      10, CMD_INITIALIZE},
-	{"RECONFIGURE",     10, CMD_RECONFIGURE},
+	{"RECONFIGURE",     11, CMD_RECONFIGURE},
 	{"START",           5,  CMD_START},
 	{"STOP",            4,  CMD_STOP},
 	{"RESET",           5,  CMD_RESET},
@@ -32,21 +32,21 @@ static const cmd_map_t cmd_table[] = {
 
 	/* Debug commands */
 	{"DEBUG_ON",        8,  CMD_DEBUG_ON},
-	{"DEBUG_OFF",       8,  CMD_DEBUG_OFF},
+	{"DEBUG_OFF",       9,  CMD_DEBUG_OFF},
 
 	/* Config commands */
 	{"SET_PARAM",       9,  CMD_SET_PARAM},
 	{"CALIBRATE",       9,  CMD_CALIBRATE},
 
 	/* Anchor specific commands */
-	{"CONFIG_START",    11, CMD_CONFIG_START},
-	{"CONFIG_STOP",     10, CMD_CONFIG_STOP},
-	{"RANGING_START",   12, CMD_RANGING_START},
-	{"RANGING_STOP",    11, CMD_RANGING_STOP},
+	{"CONFIG_START",    12, CMD_CONFIG_START},
+	{"CONFIG_STOP",     11, CMD_CONFIG_STOP},
+	{"RANGING_START",   13, CMD_RANGING_START},
+	{"RANGING_STOP",    12, CMD_RANGING_STOP},
 
 	/* Enumeration commands */
 	{"DSCVR",           5,  CMD_DISCOVER},
-	{"SYNC_LIST",       8,  CMD_SYNC_LIST},
+	{"SYNC_LIST",       9,  CMD_SYNC_LIST},
 	{"OK",              2,  CMD_OK},
 	{"ERR",             3,  CMD_ERR},
 };

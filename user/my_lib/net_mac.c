@@ -151,6 +151,8 @@ int net_init(int use_eui64, net_eui64_t* eui64, uint16_t filter_mask)
 		dwt_setaddress16(net_state.short_addr);
 
 	dwt_enableframefilter(filter_mask);
+
+        net_state.mode = NET_MODE_IDLE;
 	
 	net_state.initialized = 1;
 	return 0;
