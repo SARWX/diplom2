@@ -87,67 +87,6 @@ device_config_t* device_init_from_hardware(void)
 #define MAPPING_COUNT (sizeof(device_mapping) / sizeof(device_mapping[0]))
 
 /*==============================================================================
- * Serialization
- *============================================================================*/
-
-int device_serialize(const device_config_t* dev, uint8_t* buffer, uint16_t buffer_size)
-{
-	if (!dev || !buffer || buffer_size < 32) {
-		return -1;
-	}
-	
-	uint16_t offset = 0;
-	
-	/* part_id (4 bytes) */
-	buffer[offset++] = (dev->part_id >> 0) & 0xFF;
-	buffer[offset++] = (dev->part_id >> 8) & 0xFF;
-	buffer[offset++] = (dev->part_id >> 16) & 0xFF;
-	buffer[offset++] = (dev->part_id >> 24) & 0xFF;
-	
-	/* type (1 byte) */
-	buffer[offset++] = (uint8_t)dev->type;
-	
-	/* eui64 (8 bytes) */
-	for (int i = 0; i < 8; i++) {
-		buffer[offset++] = dev->eui64.bytes[i];
-	}
-	
-	return offset;
-}
-
-int device_deserialize(const uint8_t* buffer, uint16_t buffer_size, device_config_t* dev)
-{
-	uint16_t offset = 0;
-
-	if (!buffer || !dev || buffer_size < 32) {
-		return -1;
-	}
-	
-	/* part_id - читаем 4 байта */
-	dev->part_id = buffer[offset];
-	dev->part_id |= (buffer[offset + 1] << 8);
-	dev->part_id |= (buffer[offset + 2] << 16);
-	dev->part_id |= (buffer[offset + 3] << 24);
-	offset += 4;
-	
-	/* type */
-	dev->type = (device_type_t)buffer[offset];
-	offset += 1;
-	
-	/* eui64 - читаем 8 байт */
-	for (int i = 0; i < 8; i++) {
-		dev->eui64.bytes[i] = buffer[offset + i];
-	}
-	offset += 8;
-	
-	/* Устанавливаем функции по умолчанию */
-	dev->init_func = default_init;
-	dev->main_loop_func = default_loop;
-	
-	return 0;
-}
-
-/*==============================================================================
  * Device Identification
  *============================================================================*/
 

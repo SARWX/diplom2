@@ -52,28 +52,6 @@ extern device_config_t DEVICE_TAG;
 extern device_config_t* curr_dev;
 
 /*==============================================================================
- * Serialization
- *============================================================================*/
-
-/**
- * Serialize device configuration to buffer
- * @param dev - device configuration
- * @param buffer - output buffer (must be at least 32 bytes)
- * @param buffer_size - size of buffer
- * @return number of bytes written, or -1 on error
- */
-int device_serialize(const device_config_t* dev, uint8_t* buffer, uint16_t buffer_size);
-
-/**
- * Deserialize device configuration from buffer
- * @param buffer - input buffer
- * @param buffer_size - size of buffer
- * @param dev - output device configuration
- * @return 0 on success, -1 on error
- */
-int device_deserialize(const uint8_t* buffer, uint16_t buffer_size, device_config_t* dev);
-
-/*==============================================================================
  * Device Identification
  *============================================================================*/
 
