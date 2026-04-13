@@ -92,6 +92,7 @@ static void rx_ok_cb(const dwt_cb_data_t *cb_data)
 	switch (net_state.mode)
 	{
 	case NET_MODE_ENUMERATION:
+	case NET_MODE_SYNC_WAIT:
 		enumeration_handle_message(&devices, &msg);
 		break;
 	

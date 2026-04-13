@@ -7,9 +7,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define ENUM_LISTEN_MS 2000
-#define ENUM_RETRY_MAX 3
-
 static uint8_t enumeration_complete = 0;
 static uint8_t retry_count = 0;
 static net_devices_list_t* enum_devices = NULL;
@@ -108,7 +105,8 @@ static int send_device_list(net_devices_list_t* devices, net_addr16_t dst_addr)
 
 static int verify_device_list(net_devices_list_t* local, net_devices_list_t* remote)
 {
-	if (local->total_anchors != remote->total_anchors) {
+	/* local list doesn't contain current device */
+	if (local->total_anchors != (remote->total_anchors - 1)) {
 		return -1;
 	}
 	
@@ -153,7 +151,6 @@ int enumeration_start_master(net_devices_list_t* devices)
 		net_state.mode = NET_MODE_ENUMERATION;
 		dwt_rxenable(DWT_START_RX_IMMEDIATE);
 		sleep_ms(ENUM_LISTEN_MS);
-		dwt_forcetrxoff();
 		
 		/* 4. Если никто не ответил - пробуем ещё */
 		if (devices->total_anchors == 0) {
@@ -165,7 +162,9 @@ int enumeration_start_master(net_devices_list_t* devices)
 		net_state.mode = NET_MODE_SYNC_WAIT;
 		sync_ok_count = 0;
 
+		dwt_forcetrxoff();
 		send_device_list(devices, NET_BROADCAST_ADDR);  /* broadcast */
+		dwt_rxenable(DWT_START_RX_IMMEDIATE);
 
 		/* Ждём подтверждения */
 		sleep_ms(SYNC_WAIT_MS);
@@ -194,11 +193,11 @@ int enumeration_start_master(net_devices_list_t* devices)
  /* DISCOVER от главной станции */
 static void handle_discover(net_devices_list_t* devices, net_message_t* msg)
 {
-	/* Случайная задержка */
-	sleep_ms((uint32_t)rand() % 1000);
-	
 	/* Очищаем свой список перед новой энумерацией */
 	net_devices_clear(devices);
+
+	/* Случайная задержка */
+	sleep_ms((uint32_t)rand() % (ENUM_LISTEN_MS / 2));
 	
 	/* Отправляем ответ в зависимости от типа устройства */
 	const uint8_t* response;
@@ -241,7 +240,11 @@ static void handle_sync_list(net_devices_list_t* devices, net_message_t* msg)
 		
 		const uint8_t* response = (const uint8_t*)cmd_str(response_cmd);
 		uint16_t response_size = cmd_size(response_cmd);
+
+		/* send after random delay */
+		sleep_ms((uint32_t)rand() % (SYNC_WAIT_MS / 2));
 		
+		dwt_forcetrxoff();
 		if (msg->src_is_eui64)
 			net_send_to_64bit(&msg->src_eui64, response, response_size);
 		else
