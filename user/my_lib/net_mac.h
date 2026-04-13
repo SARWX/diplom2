@@ -118,8 +118,8 @@ int net_use_eui64(void);
  * @param ack_request - ACK request flag
  * @return 16-bit frame control value
  */
-uint16_t net_build_frame_control(net_addr_mode_t dest_mode, net_addr_mode_t src_mode,
-								  int pan_id_compression, int ack_request);
+uint16_t net_build_frame_control(net_addr_mode_t dest_mode, 
+	net_addr_mode_t src_mode, int pan_id_compression, int ack_request);
 
 /**
  * Build MAC header (only header, no payload)
@@ -129,17 +129,15 @@ uint16_t net_build_frame_control(net_addr_mode_t dest_mode, net_addr_mode_t src_
  * @param seq_num - sequence number
  * @return header length
  */
-uint16_t net_build_header(uint8_t* buffer,
-						  const net_eui64_t* dest_eui, net_addr16_t dest_addr16,
-						  uint8_t seq_num);
+uint16_t net_build_header(uint8_t* buffer, const net_eui64_t* dest_eui, 
+				net_addr16_t dest_addr16, uint8_t seq_num);
 
 /**
  * Build complete frame (header + payload)
  */
-uint16_t net_build_frame(uint8_t* buffer,
-						 const net_eui64_t* dest_eui, net_addr16_t dest_addr16,
-						 uint8_t seq_num,
-						 const uint8_t* payload, uint16_t payload_len);
+uint16_t net_build_frame(uint8_t* buffer, const net_eui64_t* dest_eui,
+				net_addr16_t dest_addr16, uint8_t seq_num,
+				const uint8_t* payload, uint16_t payload_len);
 
 /*==============================================================================
  * Transmission
@@ -148,7 +146,8 @@ uint16_t net_build_frame(uint8_t* buffer,
 /**
  * Send a raw frame
  */
-int net_send_frame(uint8_t* frame, uint16_t frame_len, uint8_t response_expected);
+int net_send_frame(uint8_t* frame, uint16_t frame_len,
+				uint8_t response_expected);
 
 /**
  * Send broadcast message (uses current device's source address)
@@ -158,17 +157,20 @@ int net_send_broadcast(const uint8_t* payload, uint16_t payload_len);
 /**
  * Send broadcast and wait for response
  */
-int net_send_broadcast_with_response(const uint8_t* payload, uint16_t payload_len);
+int net_send_broadcast_with_response(const uint8_t* payload,
+					uint16_t payload_len);
 
 /**
  * Send to 16-bit address
  */
-int net_send_to_16bit(net_addr16_t dst_addr, const uint8_t* payload, uint16_t payload_len);
+int net_send_to_16bit(net_addr16_t dst_addr, const uint8_t* payload,
+						uint16_t payload_len);
 
 /**
  * Send to 64-bit address
  */
-int net_send_to_64bit(const net_eui64_t* dst_eui, const uint8_t* payload, uint16_t payload_len);
+int net_send_to_64bit(const net_eui64_t* dst_eui, const uint8_t* payload,
+						uint16_t payload_len);
 
 /*==============================================================================
  * Reception
