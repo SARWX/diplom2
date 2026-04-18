@@ -213,10 +213,7 @@ static void handle_discover(net_devices_list_t* devices, net_message_t* msg)
 		return;
 	}
 
-	if (msg->src_is_eui64)
-		net_send_to_64bit(&msg->src_eui64, response, 1);
-	else
-		net_send_to_16bit(msg->src_addr16, response, 1);
+	net_send_broadcast(response, 1);
 	return;
 }
 
