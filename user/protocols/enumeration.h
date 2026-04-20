@@ -16,7 +16,8 @@
 
 /* Запуск энумерации на главной станции */
 int enumeration_start_master(net_devices_list_t* devices);
-
+/* Запуск энумерации на базовой станции */
+void handle_discover(net_devices_list_t* devices);
 /* Обработка энумерационных сообщений на любой станции */
 void enumeration_handle_message(net_devices_list_t* devices, net_message_t* msg);
 

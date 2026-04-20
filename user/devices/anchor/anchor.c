@@ -10,6 +10,33 @@
 #include <stdlib.h>
 
 static net_devices_list_t devices;
+static volatile net_addr16_t pending_config_answer = NULL;
+static volatile uint8_t pending_enum_answer = 0;
+
+/* IDLE state - no mode yet :( */
+static void idle_handle_message(net_devices_list_t* devices, net_message_t* msg)
+{
+	char cmd_buffer[MAX_PAYLOAD_SIZE + 1];
+	if (!msg || msg->payload_len == 0) return;
+
+	memcpy(cmd_buffer, msg->payload, msg->payload_len);
+	cmd_buffer[msg->payload_len] = '\0';
+	
+	cmd_parse_result_t result = cmd_parse(cmd_buffer);
+	
+	switch (result.code) {
+		case CMD_DISCOVER:
+			net_state.mode = NET_MODE_ENUMERATION;
+			pending_enum_answer = 1;
+			break;
+		case CMD_CONFIG_START:
+			net_state.mode = NET_MODE_CONFIG;
+			pending_config_answer = msg->src_addr16;
+		default:
+			return -1;
+	return 0;
+	}
+}
 
 /*==============================================================================
  * RX Callback
@@ -23,16 +50,28 @@ static void rx_ok_cb(const dwt_cb_data_t *cb_data)
 		return;
 	
 	dwt_readrxdata(net_state.rx_buffer, cb_data->datalength, 0);
-	
 	if (!net_parse_message(net_state.rx_buffer, cb_data->datalength, &msg))
 		return;
 	
 	/* SS TWR handling first */
-	ss_twr_handle_rx_frame(&msg);
-	
-	/* Передаём сообщение модулю энумерации */
-	enumeration_handle_message(&devices, &msg);
-	
+	if (ss_twr_handle_rx_frame(&msg))
+		goto out;
+
+	switch (net_state.mode)
+	{
+	case NET_MODE_ENUMERATION:
+		enumeration_handle_message(&devices, &msg);
+		break;
+	case NET_MODE_CONFIG:
+		enumeration_handle_message(&devices, &msg);
+		break;
+	default:
+		/* Режим пока не установлен */
+		idle_handle_message(&devices, &msg);
+		break;
+	}
+
+out:
 	/* Re-enable reception */
 	dwt_rxenable(DWT_START_RX_IMMEDIATE);
 }
@@ -67,5 +106,14 @@ void anchor_init(void)
 
 void anchor_loop(void)
 {
-	/* Всё в прерываниях */
+	if (pending_enum_answer) {
+		handle_discover(&devices);
+		pending_enum_answer = 0;
+	}
+
+	if (pending_config_answer) {
+		perform_measurements(&devices, pending_config_answer);
+		send_measurements(&devices, pending_config_answer);
+		pending_config_answer = NULL;
+	}
 }

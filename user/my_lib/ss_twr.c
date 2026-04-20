@@ -75,7 +75,7 @@ int ss_twr_measure_distance(net_addr16_t dst_addr, float* distance)
 	return -1;
 }
 
-void ss_twr_handle_rx_frame(const net_message_t* msg)
+int ss_twr_handle_rx_frame(const net_message_t* msg)
 {
 	/* Check if it's a poll frame (function code 0xE0) */
 	if (msg->payload_len >= 1 && msg->payload[0] == SS_TWR_FUNC_POLL) {
@@ -107,5 +107,7 @@ void ss_twr_handle_rx_frame(const net_message_t* msg)
 		dwt_writetxdata(len + 8, resp_msg, 0);  /* +8 for timestamps */
 		dwt_writetxfctrl(len + 8, 0, 1);
 		dwt_starttx(DWT_START_TX_DELAYED);
+		return 1;
 	}
+	return 0;
 }

@@ -10,6 +10,6 @@
 
 
 int ss_twr_measure_distance(net_addr16_t dst_addr, float* distance);
-void ss_twr_handle_rx_frame(const net_message_t* msg);
+int ss_twr_handle_rx_frame(const net_message_t* msg);
 
 #endif

@@ -168,7 +168,6 @@ void configuration_handle_message(net_devices_list_t* devices, net_message_t* ms
 	switch (result.code) {
 		case CMD_CONFIG_START:
 			/* Анкер получил запрос на конфигурацию */
-			net_state.mode = NET_MODE_CONFIG;
 			perform_measurements(devices, msg->src_addr16);
 			send_measurements(devices, msg->src_addr16);
 			break;

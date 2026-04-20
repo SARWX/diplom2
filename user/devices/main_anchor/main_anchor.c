@@ -87,7 +87,8 @@ static void rx_ok_cb(const dwt_cb_data_t *cb_data)
 		return;
 
 	/* SS TWR handling first */
-	ss_twr_handle_rx_frame(&msg);
+	if (ss_twr_handle_rx_frame(&msg))
+		return 0;
 
 	switch (net_state.mode)
 	{

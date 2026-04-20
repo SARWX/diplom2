@@ -191,7 +191,7 @@ int enumeration_start_master(net_devices_list_t* devices)
  *============================================================================*/
 
  /* DISCOVER от главной станции */
-static void handle_discover(net_devices_list_t* devices, net_message_t* msg)
+void handle_discover(net_devices_list_t* devices)
 {
 	/* Очищаем свой список перед новой энумерацией */
 	net_devices_clear(devices);
@@ -291,7 +291,7 @@ void enumeration_handle_message(net_devices_list_t* devices, net_message_t* msg)
 	cmd_parse_result_t result = cmd_parse(cmd_buffer);
 	
 	switch (result.code) {
-		case CMD_DISCOVER:   handle_discover(devices, msg); break;
+		case CMD_DISCOVER:   handle_discover(devices); break;
 		case CMD_SYNC_LIST:  handle_sync_list(devices, msg); break;
 		case CMD_OK:         handle_ok(msg); break;
 		case CMD_ERR:        /* handle error */ break; /* not really needed */
