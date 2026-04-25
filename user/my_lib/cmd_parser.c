@@ -54,6 +54,12 @@ static const cmd_map_t cmd_table[] = {
 #define CMD_TABLE_SIZE (sizeof(cmd_table) / sizeof(cmd_map_t))
 
 /*==============================================================================
+ * Internal Data
+ *============================================================================*/
+
+static char cmd_result_args[128];
+
+/*==============================================================================
  * Internal Functions
  *============================================================================*/
 
@@ -108,13 +114,13 @@ cmd_parse_result_t cmd_parse(const char* buffer)
 	}
 	
 	/* Find separator between command and arguments (space or tab) */
-	const char* args_start = NULL;
+	size_t arg_start_idx = 0;
 	size_t cmd_len = 0;
 	
 	for (size_t i = 0; i < buffer_len; i++) {
 		if (cmd_buffer[i] == ' ' || cmd_buffer[i] == '\t') {
 			cmd_len = i;
-			args_start = cmd_buffer + i;
+			arg_start_idx = i;
 			break;
 		}
 	}
@@ -138,9 +144,16 @@ cmd_parse_result_t cmd_parse(const char* buffer)
 		}
 	}
 	
-	/* Store arguments if any */
-	if (args_start && result.valid) {
-		result.args = (char*)args_start;
+	/* Store arguments if any — copy to static buffer to avoid dangling pointer */
+	if (arg_start_idx > 0 && result.valid) {
+		/* Skip leading whitespace */
+	const char* src_args = cmd_buffer + arg_start_idx;
+			while (*src_args == ' ' || *src_args == '\t') src_args++;
+		if (*src_args != '\0') {
+			strncpy(cmd_result_args, src_args, sizeof(cmd_result_args) - 1);
+			cmd_result_args[sizeof(cmd_result_args) - 1] = '\0';
+			result.args = cmd_result_args;
+		}
 	}
 	
 	return result;

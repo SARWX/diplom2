@@ -3,11 +3,15 @@
 #include "cmd_parser.h"
 #include "uart.h"
 #include "sleep.h"
+#include "ss_twr.h"
 #include <string.h>
 #include <stdlib.h>
 
 #define CONFIG_RETRY_MAX    3
 #define CONFIG_WAIT_MS      500
+
+/* Флаг: измерения получены (устанавливается в handle_measurements) */
+static volatile uint8_t g_config_measurements_received = 0;
 
 /* Сериализация пакета измерений */
 typedef struct {
@@ -35,7 +39,7 @@ static int deserialize_measurement(const uint8_t* buffer, uint16_t len, measurem
 }
 
 /* Отправка измерений от анкера */
-static void send_measurements(net_devices_list_t* devices, net_addr16_t dst_addr)
+void configuration_send_measurements(net_devices_list_t* devices, net_addr16_t dst_addr)
 {
 	uint8_t buffer[128];
 	uint16_t offset = 0;
@@ -66,6 +70,8 @@ static void send_measurements(net_devices_list_t* devices, net_addr16_t dst_addr
 static void handle_measurements(net_devices_list_t* devices, const uint8_t* data, uint16_t len)
 {
 	uint16_t offset = 0;
+	
+	g_config_measurements_received = 1;
 	
 	while (offset + 2 + sizeof(float) <= len) {
 		measurement_t m;
@@ -100,16 +106,21 @@ int configuration_start_master(net_devices_list_t* devices)
 		
 		for (int retry = 0; retry < CONFIG_RETRY_MAX; retry++) {
 			/* Отправляем CONFIG_START устройству */
+			/* Сбрасываем флаг перед отправкой */
+			g_config_measurements_received = 0;
+			
 			net_send_to_16bit(current->seq_id, 
 					(const uint8_t*)cmd_str(CMD_CONFIG_START), 
 					cmd_size(CMD_CONFIG_START));
 			
-			/* Ждём измерения */
-			sleep_ms(CONFIG_WAIT_MS);
+			/* Ждём измерения с таймаутом */
+			for (int wait_ms = 0; wait_ms < CONFIG_WAIT_MS; wait_ms += 50) {
+				sleep_ms(50);
+				if (g_config_measurements_received)
+					break;
+			}
 			
-			/* Проверяем, пришли ли измерения (обрабатываются в handle_message) */
-			/* Здесь нужен флаг, что измерения получены */
-			if (1) { /* TODO: проверять флаг measurements_received */
+			if (g_config_measurements_received) {
 				break;
 			}
 			
@@ -119,7 +130,7 @@ int configuration_start_master(net_devices_list_t* devices)
 		/* Отправляем CONFIG_STOP */
 		net_send_to_16bit(current->seq_id, 
 				(const uint8_t*)cmd_str(CMD_CONFIG_STOP), 
-				cmd_len(CMD_CONFIG_STOP));
+				cmd_size(CMD_CONFIG_STOP));
 		
 		current = current->next;
 		sleep_ms(100);
@@ -132,7 +143,7 @@ int configuration_start_master(net_devices_list_t* devices)
 /*==============================================================================
  * Измерение расстояний
  *============================================================================*/
-static void perform_measurements(net_devices_list_t* devices, uint8_t my_seq_id)
+void configuration_perform_measurements(net_devices_list_t* devices, uint8_t my_seq_id)
 {
     net_device_t* target = devices->head;
     
@@ -168,8 +179,8 @@ void configuration_handle_message(net_devices_list_t* devices, net_message_t* ms
 	switch (result.code) {
 		case CMD_CONFIG_START:
 			/* Анкер получил запрос на конфигурацию */
-			perform_measurements(devices, msg->src_addr16);
-			send_measurements(devices, msg->src_addr16);
+			configuration_perform_measurements(devices, msg->src_addr16);
+			configuration_send_measurements(devices, msg->src_addr16);
 			break;
 		
 		case CMD_CONFIG_STOP:

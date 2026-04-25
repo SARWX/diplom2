@@ -32,9 +32,9 @@ static void idle_handle_message(net_devices_list_t* devices, net_message_t* msg)
 		case CMD_CONFIG_START:
 			net_state.mode = NET_MODE_CONFIG;
 			pending_config_answer = msg->src_addr16;
+			break;
 		default:
-			return -1;
-	return 0;
+			break;
 	}
 }
 
@@ -112,8 +112,8 @@ void anchor_loop(void)
 	}
 
 	if (pending_config_answer) {
-		perform_measurements(&devices, pending_config_answer);
-		send_measurements(&devices, pending_config_answer);
+		configuration_perform_measurements(&devices, pending_config_answer);
+		configuration_send_measurements(&devices, pending_config_answer);
 		pending_config_answer = NULL;
 	}
 }
