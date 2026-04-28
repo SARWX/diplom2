@@ -315,7 +315,7 @@
           </ArmAdsMisc>
           <Cads>
             <interw>1</interw>
-            <Optim>1</Optim>
+            <Optim>2</Optim>
             <oTime>0</oTime>
             <SplitLS>0</SplitLS>
             <OneElfS>1</OneElfS>
@@ -426,11 +426,6 @@
               <FilePath>.\platform\deca_spi.c</FilePath>
             </File>
             <File>
-              <FileName>lcd.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\platform\lcd.c</FilePath>
-            </File>
-            <File>
               <FileName>port.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\platform\port.c</FilePath>
@@ -481,11 +476,6 @@
               <FilePath>.\Libraries\STM32F10x_StdPeriph_Driver\src\stm32f10x_bkp.c</FilePath>
             </File>
             <File>
-              <FileName>stm32f10x_can.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32F10x_StdPeriph_Driver\src\stm32f10x_can.c</FilePath>
-            </File>
-            <File>
               <FileName>stm32f10x_cec.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\Libraries\STM32F10x_StdPeriph_Driver\src\stm32f10x_cec.c</FilePath>
@@ -524,11 +514,6 @@
               <FileName>stm32f10x_fsmc.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\Libraries\STM32F10x_StdPeriph_Driver\src\stm32f10x_fsmc.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32f10x_i2c.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32F10x_StdPeriph_Driver\src\stm32f10x_i2c.c</FilePath>
             </File>
             <File>
               <FileName>stm32f10x_iwdg.c</FileName>
@@ -674,6 +659,16 @@
               <FileName>enumeration.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\user\protocols\enumeration.h</FilePath>
+            </File>
+            <File>
+              <FileName>configuration.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\user\protocols\configuration.c</FilePath>
+            </File>
+            <File>
+              <FileName>configuration.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\user\protocols\configuration.h</FilePath>
             </File>
           </Files>
         </Group>

@@ -16,9 +16,20 @@ static net_devices_list_t devices;
  * ISR Callbacks — top half only
  *============================================================================*/
 
-static void rx_ok_cb(const dwt_cb_data_t *cb_data)  { net_rx_ok_isr(cb_data); }
-static void rx_to_cb(const dwt_cb_data_t *cb_data)  { (void)cb_data; dwt_rxenable(DWT_START_RX_IMMEDIATE); }
-static void rx_err_cb(const dwt_cb_data_t *cb_data) { (void)cb_data; dwt_rxenable(DWT_START_RX_IMMEDIATE); }
+static void rx_ok_cb(const dwt_cb_data_t *cb_data) {
+        net_rx_ok_isr(cb_data);
+}
+
+static void rx_to_cb(const dwt_cb_data_t *cb_data) {
+        (void)cb_data;
+        if (net_state.mode == NET_MODE_IDLE)
+                dwt_rxenable(DWT_START_RX_IMMEDIATE); 
+}
+static void rx_err_cb(const dwt_cb_data_t *cb_data) {
+        (void)cb_data;
+        if (net_state.mode == NET_MODE_IDLE)
+                dwt_rxenable(DWT_START_RX_IMMEDIATE);
+}
 
 /*==============================================================================
  * Public Functions

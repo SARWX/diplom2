@@ -25,7 +25,7 @@ int net_rx_poll(net_message_t *msg)
 {
 	if (!net_state.rx_pending)
 		return 0;
-	uint16_t len         = net_state.rx_pending_len;
+	uint16_t len = net_state.rx_pending_len;
 	net_state.rx_pending = 0;
 	return net_parse_message(net_state.rx_buffer, len, msg);
 }

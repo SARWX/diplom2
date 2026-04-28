@@ -67,13 +67,13 @@ typedef enum {
 
 /** @brief Global MAC layer state. */
 typedef struct {
-	uint8_t      initialized;    /**< Non-zero after net_init() succeeds */
-	uint8_t      use_eui64;      /**< Non-zero to use EUI-64 addressing in TX frames */
-	net_addr16_t short_addr;     /**< This node's 16-bit short address */
-	net_eui64_t  eui64;          /**< This node's EUI-64 address */
-	uint8_t      rx_buffer[128]; /**< DW1000 receive buffer */
-	net_mode_t   mode;           /**< Current operational mode */
-	volatile uint8_t  rx_pending;     /**< Set to 1 by rx_ok_cb when a frame is ready in rx_buffer */
+	uint8_t initialized;            /**< Non-zero after net_init() succeeds */
+	uint8_t use_eui64;              /**< Non-zero to use EUI-64 addressing in TX frames */
+	net_addr16_t short_addr;        /**< This node's 16-bit short address */
+	net_eui64_t  eui64;             /**< This node's EUI-64 address */
+	uint8_t rx_buffer[128];         /**< DW1000 receive buffer */
+	volatile net_mode_t mode;       /**< Current operational mode */
+	volatile uint8_t  rx_pending;   /**< Set to 1 by rx_ok_cb when a frame is ready in rx_buffer */
 	volatile uint16_t rx_pending_len; /**< Length of the pending frame in rx_buffer */
 } net_state_t;
 

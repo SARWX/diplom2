@@ -13,7 +13,7 @@ static uint8_t enumeration_complete = 0;
 /** @brief Current attempt index within the retry loop in enumeration_start_master(). */
 static uint8_t retry_count = 0;
 /** @brief Count of CMD_OK responses received during SYNC_WAIT phase (deduplicated). */
-static int sync_ok_count = 0;
+static volatile int sync_ok_count = 0;
 /** @brief Source addresses that already responded OK — prevents double-counting retransmits. */
 static net_addr16_t sync_ok_senders[ENUM_MAX_DEVICES];
 /** @brief This device's seq_id as assigned by the master and received in SYNC_LIST. */
@@ -273,8 +273,6 @@ static void handle_sync_list(net_devices_list_t* devices, net_message_t* msg)
 	devices->initialized   = 1;
 	remote.head            = NULL; /* prevent double-free */
 
-	net_state.mode = NET_MODE_IDLE;
-
 	/* Staggered response to avoid collisions */
 	sleep_ms((uint32_t)rand() % (SYNC_WAIT_MS / 2));
 	dwt_forcetrxoff();
@@ -285,6 +283,8 @@ static void handle_sync_list(net_devices_list_t* devices, net_message_t* msg)
 		net_send_to_16bit(msg->src_addr16,
 		                  (const uint8_t*)cmd_str(CMD_OK), cmd_size(CMD_OK));
 	dwt_rxenable(DWT_START_RX_IMMEDIATE);
+
+        net_state.mode = NET_MODE_IDLE;
 	net_devices_clear(&remote);
 	return;
 
