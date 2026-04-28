@@ -4,310 +4,340 @@
 #include "cmd_parser.h"
 #include "sleep.h"
 #include "uart.h"
+#include "deca_device_api.h"
 #include <string.h>
 #include <stdlib.h>
 
 /** @brief Set to 1 after enumeration_start_master() completes successfully. */
 static uint8_t enumeration_complete = 0;
-/** @brief Current attempt index within enumeration_start_master() retry loop. */
+/** @brief Current attempt index within the retry loop in enumeration_start_master(). */
 static uint8_t retry_count = 0;
-/** @brief Pointer to the device list being populated during enumeration. */
-static net_devices_list_t* enum_devices = NULL;
-/** @brief Count of CMD_OK responses received during SYNC_WAIT phase. */
+/** @brief Count of CMD_OK responses received during SYNC_WAIT phase (deduplicated). */
 static int sync_ok_count = 0;
+/** @brief Source addresses that already responded OK — prevents double-counting retransmits. */
+static net_addr16_t sync_ok_senders[ENUM_MAX_DEVICES];
+/** @brief This device's seq_id as assigned by the master and received in SYNC_LIST. */
+static uint8_t own_seq_id = 0;
 
 /*==============================================================================
- * Сериализация списка устройств
+ * Serialization
  *============================================================================*/
 
-static void serialize_device_list(net_devices_list_t* devices, uint8_t* buffer, uint16_t* len)
+static void serialize_device_list(net_devices_list_t* devices,
+                                   uint8_t* buffer, uint16_t* len)
 {
-	uint16_t offset = 0;
-	net_device_t* current = devices->head;
-	
-	/* Магическое число для проверки */
+	uint16_t offset  = 0;
+	net_device_t* dev = devices->head;
+
 	buffer[offset++] = ENUM_MAGIC_1;
 	buffer[offset++] = ENUM_MAGIC_2;
-	
-	/* Количество устройств */
 	buffer[offset++] = devices->total_anchors;
-	
-	/* Сериализуем каждое устройство */
-	while (current && offset < ENUM_MAX_PACKET_SIZE) {
-		/* MAC адрес (6 байт) */
-		memcpy(buffer + offset, current->mac_address, MAC_ADDR_LEN);
+
+	while (dev && offset + MAC_ADDR_LEN + 2 <= ENUM_MAX_PACKET_SIZE) {
+		memcpy(buffer + offset, dev->mac_address, MAC_ADDR_LEN);
 		offset += MAC_ADDR_LEN;
-		
-		/* seq_id (1 байт) */
-		buffer[offset++] = current->seq_id;
-		
-		/* device_type (1 байт) */
-		buffer[offset++] = current->device_type;
-		
-		current = current->next;
+		buffer[offset++] = dev->seq_id;
+		buffer[offset++] = (uint8_t)dev->device_type;
+		dev = dev->next;
 	}
-	
 	*len = offset;
 }
 
-static int deserialize_device_list(net_devices_list_t* devices, const uint8_t* buffer, uint16_t len)
+static int deserialize_device_list(net_devices_list_t* devices,
+				   const uint8_t* buffer, uint16_t len)
 {
 	uint16_t offset = 0;
-	
-	/* Проверка магического числа */
-	if (len < 3 || buffer[offset++] != ENUM_MAGIC_1 || buffer[offset++] != ENUM_MAGIC_2) {
-		return -1;
-	}
-	
+
+	if (len < 3) return -1;
+	if (buffer[offset++] != ENUM_MAGIC_1) return -1;
+	if (buffer[offset++] != ENUM_MAGIC_2) return -1;
+
 	uint8_t count = buffer[offset++];
-	
-	if (count > ENUM_MAX_DEVICES) {
-		return -1;
-	}
-	
-	for (int i = 0; i < count && offset + MAC_ADDR_LEN + 2 <= len; i++) {
+	if (count > ENUM_MAX_DEVICES) return -1;
+
+	for (int i = 0; i < count; i++) {
+		if (offset + MAC_ADDR_LEN + 2 > len) break;
+
 		uint8_t mac[MAC_ADDR_LEN];
 		memcpy(mac, buffer + offset, MAC_ADDR_LEN);
 		offset += MAC_ADDR_LEN;
-		
 		uint8_t seq_id = buffer[offset++];
 		uint8_t device_type = buffer[offset++];
-		
-		/* Проверяем, есть ли уже такое устройство */
-		net_device_t* existing = net_device_find_by_mac(devices, mac);
-		if (!existing) {
+
+		if (!net_device_find_by_mac(devices, mac)) {
+			/* seq_id != 0: net_device_add will preserve it (not auto-assign) */
 			net_device_t* device = net_device_create(mac, seq_id, device_type);
-			if (device) {
+			if (device)
 				net_device_add(devices, device);
-			}
 		}
 	}
-	
 	return 0;
 }
 
 /*==============================================================================
- * Отправка и проверка списка
+ * SYNC_LIST packet building
  *============================================================================*/
 
-static int send_device_list(net_devices_list_t* devices, net_addr16_t dst_addr)
+static int send_sync_list(net_devices_list_t* devices, net_addr16_t dst_addr)
 {
-	uint8_t buffer[ENUM_MAX_PACKET_SIZE];
-	uint16_t len;
-	
-	serialize_device_list(devices, buffer, &len);
-	
-	/* Отправляем с префиксом SYNC_LIST */
-	uint8_t sync_len = cmd_len(CMD_SYNC_LIST);
-	uint8_t packet[ENUM_MAX_PACKET_SIZE + sync_len];
-	memcpy(packet, cmd_str(CMD_SYNC_LIST), sync_len);
-	packet[sync_len] = ' ';  /* Разделитель */
-	memcpy(packet + sync_len + 1, buffer, len);
-	
-	return net_send_to_16bit(dst_addr, packet, sync_len + len);
+	uint8_t list_buf[ENUM_MAX_PACKET_SIZE];
+	uint16_t list_len;
+	serialize_device_list(devices, list_buf, &list_len);
+
+	uint8_t prefix_len = cmd_len(CMD_SYNC_LIST);
+	uint8_t packet[16 + ENUM_MAX_PACKET_SIZE];  /* 16 is enough for any cmd prefix */
+	memcpy(packet, cmd_str(CMD_SYNC_LIST), prefix_len);
+	packet[prefix_len] = ' ';
+	memcpy(packet + prefix_len + 1, list_buf, list_len);
+
+	return net_send_to_16bit(dst_addr, packet, prefix_len + 1 + list_len);
 }
+
+/*==============================================================================
+ * Verification
+ *============================================================================*/
 
 static int verify_device_list(net_devices_list_t* local, net_devices_list_t* remote)
 {
-	/* local list doesn't contain current device */
-	if (local->total_anchors != (remote->total_anchors - 1)) {
+	/* Every locally-discovered device must appear in remote with the same type.
+	   Local list may be incomplete (we might have missed some early responses),
+	   so we only check containment, not count equality. */
+	net_device_t* dev = local->head;
+	while (dev) {
+		net_device_t* rdv = net_device_find_by_mac(remote, dev->mac_address);
+		if (!rdv || rdv->device_type != dev->device_type)
+			return -1;
+		dev = dev->next;
+	}
+
+	/* This device's own EUI must appear in the remote list */
+	const net_eui64_t* eui = net_get_src_eui64();
+	if (!net_device_find_by_mac(remote, eui->bytes))
 		return -1;
-	}
-	
-	net_device_t* local_dev = local->head;
-	while (local_dev) {
-		net_device_t* remote_dev = net_device_find_by_mac(remote, local_dev->mac_address);
-		if (!remote_dev) {
-			return -1;
-		}
-		if (remote_dev->device_type != local_dev->device_type) {
-			return -1;
-		}
-		local_dev = local_dev->next;
-	}
-	
+
 	return 0;
 }
 
 /*==============================================================================
- * Главная станция - энумерация
+ * Master — enumeration_start_master
  *============================================================================*/
+
+#define ENUM_POLL_MS 20
+
+/* Drain one pending RX frame and dispatch it to enumeration_handle_message. */
+static void drain_rx(net_devices_list_t* devices)
+{
+	net_message_t msg;
+	if (!net_rx_poll(&msg)) return;
+	enumeration_handle_message(devices, &msg);
+	dwt_rxenable(DWT_START_RX_IMMEDIATE);
+}
 
 int enumeration_start_master(net_devices_list_t* devices)
 {
-	enum_devices = devices;
 	enumeration_complete = 0;
-	
+
 	for (retry_count = 0; retry_count < ENUM_RETRY_MAX; retry_count++) {
-		uart_printf("Attempt %d/%d\r\n", retry_count + 1, ENUM_RETRY_MAX);
-		
-		/* 1. Очищаем список */
+		uart_printf("Enumeration attempt %d/%d\r\n", retry_count + 1, ENUM_RETRY_MAX);
+
 		net_devices_clear(devices);
-		
-		/* 2. Отправляем DISCOVER */
+
+		/* Phase 1: broadcast DISCOVER, poll for responses */
 		dwt_forcetrxoff();
-		if (net_send_broadcast((const uint8_t*)cmd_str(
-			CMD_DISCOVER), cmd_size(CMD_DISCOVER)) < 0) {
+		if (net_send_broadcast((const uint8_t*)cmd_str(CMD_DISCOVER),
+		                       cmd_size(CMD_DISCOVER)) < 0)
 			continue;
-		}
-		
-		/* 3. Ждём ответы */
+
 		net_state.mode = NET_MODE_ENUMERATION;
 		dwt_rxenable(DWT_START_RX_IMMEDIATE);
-		sleep_ms(ENUM_LISTEN_MS);
-		
-		/* 4. Если никто не ответил - пробуем ещё */
+
+		for (uint32_t t = 0; t < ENUM_LISTEN_MS; t += ENUM_POLL_MS) {
+			sleep_ms(ENUM_POLL_MS);
+			drain_rx(devices);
+		}
+
 		if (devices->total_anchors == 0) {
 			uart_puts("No devices found, retrying...\r\n");
 			continue;
 		}
-		
-		/* 5. Отправляем broadcast SYNCLIST один раз */
+
+		/* Phase 2: broadcast SYNC_LIST, poll for OK responses */
 		net_state.mode = NET_MODE_SYNC_WAIT;
-		sync_ok_count = 0;
+		sync_ok_count  = 0;
+		memset(sync_ok_senders, 0, sizeof(sync_ok_senders));
 
 		dwt_forcetrxoff();
-		send_device_list(devices, NET_BROADCAST_ADDR);  /* broadcast */
+		send_sync_list(devices, NET_BROADCAST_ADDR);
 		dwt_rxenable(DWT_START_RX_IMMEDIATE);
 
-		/* Ждём подтверждения */
-		sleep_ms(SYNC_WAIT_MS);
+		for (uint32_t t = 0; t < SYNC_WAIT_MS; t += ENUM_POLL_MS) {
+			sleep_ms(ENUM_POLL_MS);
+			drain_rx(devices);
+			if (sync_ok_count >= devices->total_anchors)
+				break;
+		}
 
 		net_state.mode = NET_MODE_IDLE;
 
-		/* 6. Проверяем, что все ответили OK */
-		if (sync_ok_count == devices->total_anchors) {
+		if (sync_ok_count >= devices->total_anchors) {
 			enumeration_complete = 1;
 			devices->initialized = 1;
+			uart_puts("Enumeration complete\r\n");
 			net_devices_print(devices);
 			return 0;
 		}
-		
-		uart_puts("Verification failed, retrying...\r\n");
+
+		uart_printf("Only %d/%d confirmed, retrying...\r\n",
+		            sync_ok_count, devices->total_anchors);
 	}
-	
-	uart_puts("Enumeration failed after all retries\r\n");
+
+	uart_puts("Enumeration failed\r\n");
 	return -1;
 }
 
 /*==============================================================================
- * Обработка сообщений энумерации (для любой станции)
+ * Slave — message handlers (run in main loop context, never in ISR)
  *============================================================================*/
 
- /* DISCOVER от главной станции */
-void handle_discover(net_devices_list_t* devices)
+static void handle_device_response(net_devices_list_t* devices, net_message_t* msg)
 {
-	/* Очищаем свой список перед новой энумерацией */
+	if (msg->payload_len < 1) return;
+
+	uint8_t mac[MAC_ADDR_LEN] = {0};
+	if (msg->src_is_eui64)
+		memcpy(mac, msg->src_eui64.bytes, MAC_ADDR_LEN);
+	else {
+		mac[0] = msg->src_addr16 & 0xFF;
+		mac[1] = (msg->src_addr16 >> 8) & 0xFF;
+	}
+
+	device_type_t dtype = (msg->payload[0] == 'A') ? DEVICE_TYPE_ANCHOR : DEVICE_TYPE_TAG;
+
+	if (!net_device_find_by_mac(devices, mac)) {
+		net_device_t* device = net_device_create(mac, 0, dtype);
+		if (device)
+			net_device_add(devices, device);
+	}
+}
+
+static void handle_discover(net_devices_list_t* devices)
+{
+	/* Fresh start for this enumeration round */
 	net_devices_clear(devices);
 
-	/* Случайная задержка */
+	/* Random backoff so devices don't all respond at the same instant */
 	sleep_ms((uint32_t)rand() % (ENUM_LISTEN_MS / 2));
-	
-	/* Отправляем ответ в зависимости от типа устройства */
+
 	const uint8_t* response;
-	switch (curr_dev->type)
-	{
-	case DEVICE_TYPE_ANCHOR:
-		response = (const uint8_t*)"A";
-		break;
-	case DEVICE_TYPE_TAG:
-		response = (const uint8_t*)"T";
-		break;
-	default:
-		return;
+	switch (curr_dev->type) {
+	case DEVICE_TYPE_ANCHOR: response = (const uint8_t*)"A"; break;
+	case DEVICE_TYPE_TAG:    response = (const uint8_t*)"T"; break;
+	default:                 return;
 	}
 
 	net_send_broadcast(response, 1);
-	return;
+	/* Keep listening for other devices' responses until SYNC_LIST arrives */
+	dwt_rxenable(DWT_START_RX_IMMEDIATE);
 }
 
 static void handle_sync_list(net_devices_list_t* devices, net_message_t* msg)
 {
-	net_devices_list_t remote_list;
-	net_devices_init(&remote_list);
-	
-	uint8_t sync_len = cmd_len(CMD_SYNC_LIST);
-	sync_len += 1; /* space separator */
-	
-	if (deserialize_device_list(&remote_list, msg->payload + sync_len, 
-					msg->payload_len - sync_len) == 0) {
-		cmd_code_t response_cmd = CMD_OK;
-		devices->initialized = 1;
-		
-		if (verify_device_list(devices, &remote_list) != 0) {
-			response_cmd = CMD_ERR;
-			devices->initialized = 0;
-		}
-		
-		const uint8_t* response = (const uint8_t*)cmd_str(response_cmd);
-		uint16_t response_size = cmd_size(response_cmd);
+	net_devices_list_t remote;
+	net_devices_init(&remote);
 
-		/* send after random delay */
-		sleep_ms((uint32_t)rand() % (SYNC_WAIT_MS / 2));
-		
-		dwt_forcetrxoff();
-		if (msg->src_is_eui64)
-			net_send_to_64bit(&msg->src_eui64, response, response_size);
-		else
-			net_send_to_16bit(msg->src_addr16, response, response_size);
-	}
-	net_devices_clear(&remote_list);
+	uint8_t prefix_len = cmd_len(CMD_SYNC_LIST) + 1; /* +1 for the space separator */
+	if (msg->payload_len <= prefix_len) goto send_err;
+
+	if (deserialize_device_list(&remote,
+	                             msg->payload + prefix_len,
+	                             msg->payload_len - prefix_len) != 0)
+		goto send_err;
+
+	/* Store own seq_id (master included this device in the list) */
+	const net_eui64_t* eui = net_get_src_eui64();
+	net_device_t* self = net_device_find_by_mac(&remote, eui->bytes);
+	if (self)
+		own_seq_id = self->seq_id;
+
+	/* Verify local discoveries are consistent with master's authoritative list */
+	if (verify_device_list(devices, &remote) != 0)
+		goto send_err;
+
+	/* Accept master's list: swap remote into local devices */
+	net_devices_clear(devices);
+	devices->head          = remote.head;
+	devices->total_anchors = remote.total_anchors;
+	devices->initialized   = 1;
+	remote.head            = NULL; /* prevent double-free */
+
+	net_state.mode = NET_MODE_IDLE;
+
+	/* Staggered response to avoid collisions */
+	sleep_ms((uint32_t)rand() % (SYNC_WAIT_MS / 2));
+	dwt_forcetrxoff();
+	if (msg->src_is_eui64)
+		net_send_to_64bit(&msg->src_eui64,
+		                  (const uint8_t*)cmd_str(CMD_OK), cmd_size(CMD_OK));
+	else
+		net_send_to_16bit(msg->src_addr16,
+		                  (const uint8_t*)cmd_str(CMD_OK), cmd_size(CMD_OK));
+	dwt_rxenable(DWT_START_RX_IMMEDIATE);
+	net_devices_clear(&remote);
+	return;
+
+send_err:
+	net_devices_clear(&remote);
+	net_state.mode = NET_MODE_IDLE;
+
+	sleep_ms((uint32_t)rand() % (SYNC_WAIT_MS / 2));
+	dwt_forcetrxoff();
+	if (msg->src_is_eui64)
+		net_send_to_64bit(&msg->src_eui64,
+		                  (const uint8_t*)cmd_str(CMD_ERR), cmd_size(CMD_ERR));
+	else
+		net_send_to_16bit(msg->src_addr16,
+		                  (const uint8_t*)cmd_str(CMD_ERR), cmd_size(CMD_ERR));
+	dwt_rxenable(DWT_START_RX_IMMEDIATE);
 }
 
 static void handle_ok(net_message_t* msg)
 {
-	if (net_state.mode == NET_MODE_SYNC_WAIT)
-		sync_ok_count++;
+	if (net_state.mode != NET_MODE_SYNC_WAIT) return;
+
+	/* Deduplicate: ignore a second OK from the same source */
+	net_addr16_t src = msg->src_is_eui64 ? 0 : msg->src_addr16;
+	for (int i = 0; i < sync_ok_count; i++) {
+		if (sync_ok_senders[i] == src) return;
+	}
+	if (sync_ok_count < ENUM_MAX_DEVICES)
+		sync_ok_senders[sync_ok_count++] = src;
 }
 
-static void handle_device_response(net_devices_list_t* devices, net_message_t* msg)
-{
-	uint8_t mac[MAC_ADDR_LEN] = {0};
-	uint8_t device_type = (msg->payload[0] == 'A') ?
-			DEVICE_TYPE_ANCHOR : DEVICE_TYPE_TAG;
-	
-	if (msg->src_is_eui64) {
-		memcpy(mac, &msg->src_eui64, MAC_ADDR_LEN);
-	} else {
-		mac[0] = msg->src_addr16 & 0xFF;
-		mac[1] = (msg->src_addr16 >> 8) & 0xFF;
-	}
-	
-	/* Добавляем только если нет в списке */
-	net_device_t* existing = net_device_find_by_mac(devices, mac);
-	if (!existing) {
-		net_device_t* device = net_device_create(mac, 0, device_type);
-		if (device)
-			net_device_add(devices, device);
-	}
-	return;
-}
-
+/*==============================================================================
+ * Public dispatch — safe to call only from main loop, never from ISR
+ *============================================================================*/
 
 void enumeration_handle_message(net_devices_list_t* devices, net_message_t* msg)
 {
-	char cmd_buffer[MAX_PAYLOAD_SIZE + 1];
 	if (!msg || msg->payload_len == 0) return;
 
-	memcpy(cmd_buffer, msg->payload, msg->payload_len);
-	cmd_buffer[msg->payload_len] = '\0';
-	
-	cmd_parse_result_t result = cmd_parse(cmd_buffer);
-	
+	char cmd_buf[MAX_PAYLOAD_SIZE + 1];
+	uint16_t plen = msg->payload_len < MAX_PAYLOAD_SIZE ? msg->payload_len : MAX_PAYLOAD_SIZE;
+	memcpy(cmd_buf, msg->payload, plen);
+	cmd_buf[plen] = '\0';
+
+	cmd_parse_result_t result = cmd_parse(cmd_buf);
 	switch (result.code) {
-		case CMD_DISCOVER:   handle_discover(devices); break;
-		case CMD_SYNC_LIST:  handle_sync_list(devices, msg); break;
-		case CMD_OK:         handle_ok(msg); break;
-		case CMD_ERR:        /* handle error */ break; /* not really needed */
-		default:
-			if (msg->payload_len >= 1 && (msg->payload[0] == 'A' || 
-						msg->payload[0] == 'T')) {
-				handle_device_response(devices, msg);
-			}
-		}
+	case CMD_DISCOVER: handle_discover(devices);            break;
+	case CMD_SYNC_LIST: handle_sync_list(devices, msg);     break;
+	case CMD_OK:        handle_ok(msg);                     break;
+	case CMD_ERR:       /* log or ignore */                 break;
+	default:
+		if (plen >= 1 && (cmd_buf[0] == 'A' || cmd_buf[0] == 'T'))
+			handle_device_response(devices, msg);
+		break;
+	}
 }
 
-uint8_t enumeration_is_complete(void)
-{
-	return enumeration_complete;
-}
+uint8_t enumeration_is_complete(void)    { return enumeration_complete; }
+uint8_t enumeration_get_own_seq_id(void) { return own_seq_id; }

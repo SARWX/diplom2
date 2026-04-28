@@ -10,6 +10,26 @@
 /** @brief Global MAC layer state instance. Defined here, declared extern in net_mac.h. */
 net_state_t net_state = {0};
 
+void net_rx_ok_isr(const dwt_cb_data_t *cb_data)
+{
+	if (cb_data->datalength > sizeof(net_state.rx_buffer)) {
+		dwt_rxenable(DWT_START_RX_IMMEDIATE);
+		return;
+	}
+	dwt_readrxdata(net_state.rx_buffer, cb_data->datalength, 0);
+	net_state.rx_pending_len = cb_data->datalength;
+	net_state.rx_pending     = 1;
+}
+
+int net_rx_poll(net_message_t *msg)
+{
+	if (!net_state.rx_pending)
+		return 0;
+	uint16_t len         = net_state.rx_pending_len;
+	net_state.rx_pending = 0;
+	return net_parse_message(net_state.rx_buffer, len, msg);
+}
+
 /* Header lengths */
 #define NET_MAC_HEADER_LEN_16BIT   9
 #define NET_MAC_HEADER_LEN_64BIT   15

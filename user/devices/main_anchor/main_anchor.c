@@ -73,44 +73,11 @@ static void process_command(cmd_parse_result_t cmd)
 }
 
 /*==============================================================================
- * DW1000 Callbacks
+ * ISR Callbacks — top half only
  *============================================================================*/
 
-static void rx_ok_cb(const dwt_cb_data_t *cb_data)
-{
-	net_message_t msg;
-
-	if (cb_data->datalength > sizeof(net_state.rx_buffer))
-		return;
-
-	dwt_readrxdata(net_state.rx_buffer, cb_data->datalength, 0);
-
-	if (!net_parse_message(net_state.rx_buffer, cb_data->datalength, &msg))
-		return;
-
-	/* SS TWR handling first */
-	if (ss_twr_handle_rx_frame(&msg))
-		return 0;
-
-	switch (net_state.mode)
-	{
-	case NET_MODE_ENUMERATION:
-	case NET_MODE_SYNC_WAIT:
-		enumeration_handle_message(&devices, &msg);
-		break;
-	
-	default:
-		break;
-	}
-	
-	dwt_rxenable(DWT_START_RX_IMMEDIATE);
-}
-
-static void rx_err_cb(const dwt_cb_data_t *cb_data)
-{
-	(void)cb_data;
-	dwt_rxenable(DWT_START_RX_IMMEDIATE);
-}
+static void rx_ok_cb(const dwt_cb_data_t *cb_data)  { net_rx_ok_isr(cb_data); }
+static void rx_err_cb(const dwt_cb_data_t *cb_data) { (void)cb_data; dwt_rxenable(DWT_START_RX_IMMEDIATE); }
 
 /*==============================================================================
  * Device Interface
@@ -119,14 +86,14 @@ static void rx_err_cb(const dwt_cb_data_t *cb_data)
 void main_anchor_init(void)
 {
 	uart_init(115200);
-	
+
 	port_set_deca_isr(dwt_isr);
 	dwt_setcallbacks(NULL, rx_ok_cb, NULL, rx_err_cb);
 	dwt_setinterrupt(DWT_INT_RFCG | DWT_INT_RPHE | DWT_INT_RFCE | DWT_INT_RFSL, 1);
 	dwt_rxenable(DWT_START_RX_IMMEDIATE);
 
 	net_devices_init(&devices);
-	
+
 	uart_puts("\r\n========================================\r\n");
 	uart_puts("Main Anchor Station\r\n");
 	uart_puts("========================================\r\n");
@@ -136,11 +103,25 @@ void main_anchor_init(void)
 
 void main_anchor_loop(void)
 {
+	/* Process any pending network message (enumeration_start_master has its own
+	   drain loop during active enumeration; this covers all other phases) */
+	net_message_t msg;
+	if (net_rx_poll(&msg)) {
+		switch (net_state.mode) {
+		case NET_MODE_ENUMERATION:
+		case NET_MODE_SYNC_WAIT:
+			enumeration_handle_message(&devices, &msg);
+			break;
+		default:
+			break;
+		}
+		dwt_rxenable(DWT_START_RX_IMMEDIATE);
+	}
+
 	static char line_buffer[128];
-	
 	uart_readline(line_buffer, sizeof(line_buffer));
 	cmd_parse_result_t cmd = cmd_parse(line_buffer);
 	process_command(cmd);
-	
+
 	uart_puts("\r\n> ");
 }

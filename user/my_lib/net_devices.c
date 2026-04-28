@@ -61,7 +61,8 @@ int net_device_add(net_devices_list_t* list, net_device_t* device)
 		return -2;
 	}
 	
-	device->seq_id = list->total_anchors + 1;
+	if (device->seq_id == 0)
+		device->seq_id = list->total_anchors + 1;
 	device->next = list->head;
 	list->head = device;
 	list->total_anchors++;

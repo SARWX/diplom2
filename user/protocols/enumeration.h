@@ -14,14 +14,15 @@
 #define ENUM_LISTEN_MS 2000
 #define ENUM_RETRY_MAX 3
 
-/* Запуск энумерации на главной станции */
+/** @brief Run full enumeration as master: DISCOVER → collect → SYNC_LIST → verify OKs. */
 int enumeration_start_master(net_devices_list_t* devices);
-/* Запуск энумерации на базовой станции */
-void handle_discover(net_devices_list_t* devices);
-/* Обработка энумерационных сообщений на любой станции */
+/** @brief Dispatch an incoming message to the appropriate enumeration handler.
+ *  Must be called from main loop context only — never from an ISR. */
 void enumeration_handle_message(net_devices_list_t* devices, net_message_t* msg);
 
-/* Получить статус энумерации */
+/** @brief Returns 1 after a successful enumeration, 0 otherwise. */
 uint8_t enumeration_is_complete(void);
+/** @brief Returns this device's seq_id as assigned by the master in SYNC_LIST. */
+uint8_t enumeration_get_own_seq_id(void);
 
 #endif
