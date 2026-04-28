@@ -35,21 +35,26 @@ static float twr_calc_distance(uint32 poll_tx_ts, uint32 resp_rx_ts,
 	return (float)(tof * SPEED_OF_LIGHT);
 }
 
-/* Тут надо отключать прерывания будет в DW1000, а то ответ будет не туда идти */
 int ss_twr_measure_distance(net_addr16_t dst_addr, float* distance)
 {
+	decaIrqStatus_t irq_state;
 	uint32 status_reg;
 	uint32 poll_tx_ts, resp_rx_ts, poll_rx_ts = 0, resp_tx_ts = 0;
-	
+	int ret = -1;
+
+	/* Enter critical section - disables interrupts */
+	irq_state = decamutexon();
+
 	/* Send poll with response expected */
-	if (twr_send_poll(dst_addr) < 0) return -1;
-	
+	if (twr_send_poll(dst_addr) < 0)
+		goto restore;
+
 	/* Wait for response */
 	while (!((status_reg = dwt_read32bitreg(SYS_STATUS_ID)) & 
 		(SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_TO | SYS_STATUS_ALL_RX_ERR))) {
 		; /* Wait */
 	}
-	
+
 	if (status_reg & SYS_STATUS_RXFCG) {
 		uint16_t len = dwt_read32bitreg(RX_FINFO_ID) & RX_FINFO_RXFL_MASK_1023;
 		if (len <= sizeof(net_state.rx_buffer)) {
@@ -66,13 +71,17 @@ int ss_twr_measure_distance(net_addr16_t dst_addr, float* distance)
 			
 			*distance = twr_calc_distance(poll_tx_ts, resp_rx_ts, poll_rx_ts, resp_tx_ts);
 			twr_last_distance = *distance;
+			ret = 0;
 		}
 		dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG);
-		return 0;
+	} else {
+		dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_TO | SYS_STATUS_ALL_RX_ERR);
 	}
-	
-	dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_TO | SYS_STATUS_ALL_RX_ERR);
-	return -1;
+
+restore:
+	/* Exit critical section - restores interrupts */
+	decamutexoff(irq_state);
+	return ret;
 }
 
 int ss_twr_handle_rx_frame(const net_message_t* msg)
