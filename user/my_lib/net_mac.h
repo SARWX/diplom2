@@ -19,63 +19,63 @@
  * Data Types
  *============================================================================*/
 
-/* 64-bit EUI address */
+/** @brief 64-bit Extended Unique Identifier (EUI-64) of a network node. */
 typedef struct {
-	uint8_t bytes[8];
+	uint8_t bytes[8]; /**< Address bytes, LSB first */
 } net_eui64_t;
 
-/* 16-bit short address */
+/** @brief 16-bit IEEE 802.15.4 short address. */
 typedef uint16_t net_addr16_t;
 
-/* Addressing mode for source */
+/** @brief MAC frame addressing mode (IEEE 802.15.4). */
 typedef enum {
-	NET_ADDR_MODE_NONE = 0,
-	NET_ADDR_MODE_16BIT = 2,
-	NET_ADDR_MODE_64BIT = 3
+	NET_ADDR_MODE_NONE  = 0, /**< No address field */
+	NET_ADDR_MODE_16BIT = 2, /**< 16-bit short address */
+	NET_ADDR_MODE_64BIT = 3  /**< 64-bit EUI address */
 } net_addr_mode_t;
 
-/* Parsed message structure */
+/** @brief Parsed network message produced by net_parse_message(). */
 typedef struct {
-	uint8_t* data;              /* Raw frame data */
-	uint16_t len;               /* Total frame length */
-	uint8_t seq_num;            /* Sequence number */
-	
-	/* Destination */
-	uint8_t dest_is_eui64;      /* 1 if 64-bit, 0 if 16-bit */
+	uint8_t* data;         /**< Raw frame buffer (including MAC header) */
+	uint16_t len;          /**< Total frame length in bytes */
+	uint8_t  seq_num;      /**< MAC sequence number */
+
+	uint8_t dest_is_eui64; /**< Non-zero if destination address is EUI-64 */
 	union {
 		net_addr16_t dst_addr16;
-		net_eui64_t dst_eui64;
+		net_eui64_t  dst_eui64;
 	};
-	
-	/* Source */
-	uint8_t src_is_eui64;       /* 1 if 64-bit, 0 if 16-bit */
+
+	uint8_t src_is_eui64;  /**< Non-zero if source address is EUI-64 */
 	union {
 		net_addr16_t src_addr16;
-		net_eui64_t src_eui64;
+		net_eui64_t  src_eui64;
 	};
-	
-	uint8_t* payload;           /* Pointer to payload */
-	uint16_t payload_len;       /* Payload length */
+
+	uint8_t*  payload;     /**< Pointer to payload within data buffer */
+	uint16_t  payload_len; /**< Payload length in bytes */
 } net_message_t;
 
+/** @brief Network layer operational mode. */
 typedef enum {
-	NET_MODE_IDLE,
-	NET_MODE_ENUMERATION,
-	NET_MODE_SYNC_WAIT,
-	NET_MODE_CONFIG,
-	NET_MODE_RANGING
+	NET_MODE_IDLE,        /**< Idle, waiting for activity */
+	NET_MODE_ENUMERATION, /**< Device enumeration in progress */
+	NET_MODE_SYNC_WAIT,   /**< Waiting for sync-list acknowledgements */
+	NET_MODE_CONFIG,      /**< Distance measurement configuration phase */
+	NET_MODE_RANGING      /**< Continuous ranging mode */
 } net_mode_t;
 
+/** @brief Global MAC layer state. */
 typedef struct {
-	uint8_t initialized;
-	uint8_t use_eui64;
-	net_addr16_t short_addr;
-	net_eui64_t eui64;
-	uint8_t rx_buffer[128];
-	net_mode_t mode;
+	uint8_t      initialized;    /**< Non-zero after net_init() succeeds */
+	uint8_t      use_eui64;      /**< Non-zero to use EUI-64 addressing in TX frames */
+	net_addr16_t short_addr;     /**< This node's 16-bit short address */
+	net_eui64_t  eui64;          /**< This node's EUI-64 address */
+	uint8_t      rx_buffer[128]; /**< DW1000 receive buffer */
+	net_mode_t   mode;           /**< Current operational mode */
 } net_state_t;
 
-/* global net state */
+/** @brief Global instance of the MAC layer state, shared across all modules. */
 extern net_state_t net_state;
 
 /*==============================================================================

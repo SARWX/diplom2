@@ -11,6 +11,7 @@
  * Hardware Configuration
  *============================================================================*/
 
+/** @brief DW1000 radio configuration: channel 2, 64 MHz PRF, 110 kbps, 1024-chip preamble. */
 static dwt_config_t config = {
 	2,               /* Channel number */
 	DWT_PRF_64M,     /* Pulse repetition frequency */
@@ -28,6 +29,7 @@ static dwt_config_t config = {
  * Device Registration
  *============================================================================*/
 
+/** @brief Static table mapping DW1000 Part IDs to device configs and entry points. */
 static const device_registration_t devices[] = {
 	{0x545541A2, &DEVICE_MAIN_ANCHOR, main_anchor_init, main_anchor_loop},
 	{0x1454DA34, &DEVICE_ANCHOR,      anchor_init,      anchor_loop},

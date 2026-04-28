@@ -10,7 +10,7 @@
 static void default_init(void) { ; }
 static void default_loop(void) { ; }
 
-/* Предопределенные устройства */
+/** @brief Predefined config object for the master anchor node (EUI prefix 0x01). */
 device_config_t DEVICE_MAIN_ANCHOR = {
 	.part_id = 0,
 	.type = DEVICE_TYPE_MAIN_ANCHOR,
@@ -19,6 +19,7 @@ device_config_t DEVICE_MAIN_ANCHOR = {
 	.main_loop_func = default_loop,
 };
 
+/** @brief Predefined config object for a regular anchor node (EUI prefix 0x02). */
 device_config_t DEVICE_ANCHOR = {
 	.part_id = 0,
 	.type = DEVICE_TYPE_ANCHOR,
@@ -27,6 +28,7 @@ device_config_t DEVICE_ANCHOR = {
 	.main_loop_func = default_loop,
 };
 
+/** @brief Predefined config object for a tag node (EUI prefix 0x03). */
 device_config_t DEVICE_TAG = {
 	.part_id = 0,
 	.type = DEVICE_TYPE_TAG,
@@ -39,16 +41,18 @@ device_config_t DEVICE_TAG = {
  * Internal Data
  *============================================================================*/
 
+/** @brief Pointer to the active device config for the currently running node. */
 device_config_t* curr_dev = NULL;
 
-/* Таблица маппинга Part ID -> тип устройства */
 #define MAX_MAPPINGS 16
 
+/** @brief Table mapping DW1000 Part IDs to device_config_t instances. */
 static struct {
 	uint32_t part_id;
 	device_config_t* dev;
 } device_mappings[MAX_MAPPINGS];
 
+/** @brief Number of entries currently registered in device_mappings[]. */
 static uint8_t mapping_count = 0;
 
 int device_register(const device_registration_t* reg)

@@ -7,9 +7,13 @@
 #include <string.h>
 #include <stdlib.h>
 
+/** @brief Set to 1 after enumeration_start_master() completes successfully. */
 static uint8_t enumeration_complete = 0;
+/** @brief Current attempt index within enumeration_start_master() retry loop. */
 static uint8_t retry_count = 0;
+/** @brief Pointer to the device list being populated during enumeration. */
 static net_devices_list_t* enum_devices = NULL;
+/** @brief Count of CMD_OK responses received during SYNC_WAIT phase. */
 static int sync_ok_count = 0;
 
 /*==============================================================================

@@ -9,8 +9,11 @@
 #include <string.h>
 #include <stdlib.h>
 
+/** @brief List of network devices discovered during enumeration. */
 static net_devices_list_t devices;
+/** @brief Short address of the master that requested configuration; non-zero while config is pending. */
 static volatile net_addr16_t pending_config_answer = NULL;
+/** @brief Set to 1 in the ISR when a DISCOVER command is received; cleared in the main loop. */
 static volatile uint8_t pending_enum_answer = 0;
 
 /* IDLE state - no mode yet :( */

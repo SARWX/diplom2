@@ -7,6 +7,7 @@
  * Internal State
  *============================================================================*/
 
+/** @brief Global MAC layer state instance. Defined here, declared extern in net_mac.h. */
 net_state_t net_state = {0};
 
 /* Header lengths */

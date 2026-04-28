@@ -10,14 +10,18 @@
 #define CONFIG_RETRY_MAX    3
 #define CONFIG_WAIT_MS      500
 
-/* Флаг: измерения получены (устанавливается в handle_measurements) */
+/** @brief Set to 1 by handle_measurements() when a measurement packet arrives; polled by configuration_start_master(). */
 static volatile uint8_t g_config_measurements_received = 0;
 
-/* Сериализация пакета измерений */
+/**
+ * @brief Wire-format record for a single inter-anchor distance measurement.
+ *
+ * Serialized as: from_seq_id (1 byte) | to_seq_id (1 byte) | distance (4 bytes, float LE).
+ */
 typedef struct {
-	uint8_t from_seq_id;
-	uint8_t to_seq_id;
-	float distance;
+	uint8_t from_seq_id; /**< seq_id of the anchor that performed the measurement */
+	uint8_t to_seq_id;   /**< seq_id of the target anchor */
+	float   distance;    /**< Measured distance in metres */
 } measurement_t;
 
 static void serialize_measurement(const measurement_t* m, uint8_t* buffer, uint16_t* len)

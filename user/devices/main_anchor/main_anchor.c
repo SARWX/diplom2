@@ -9,7 +9,9 @@
 #include <string.h>
 #include <stdlib.h>
 
+/** @brief List of network devices discovered during enumeration. */
 static net_devices_list_t devices;
+/** @brief Non-zero when verbose debug output is enabled via CMD_DEBUG_ON. */
 static uint8_t debug_enabled = 0;
 
 /*==============================================================================

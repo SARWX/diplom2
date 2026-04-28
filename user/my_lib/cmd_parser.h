@@ -8,51 +8,40 @@
  * Command Codes
  *============================================================================*/
 
+/** @brief All recognized command codes exchanged over-the-air and via UART. */
 typedef enum {
-        CMD_UNKNOWN = 0,
-	/* System commands */
-	CMD_INITIALIZE,
-	CMD_RECONFIGURE,
-	CMD_START,
-	CMD_STOP,
-	CMD_RESET,
-	
-	/* Status commands */
-	CMD_GET_STATUS,
-	CMD_GET_CONFIG,
-	
-	/* Debug commands */
-	CMD_DEBUG_ON,
-	CMD_DEBUG_OFF,
-	
-	/* Config commands */
-	CMD_SET_PARAM,
-	CMD_CALIBRATE,
-	
-	/* Anchor specific commands */
-	CMD_CONFIG_START,
-	CMD_CONFIG_STOP,
-	CMD_RANGING_START,
-	CMD_RANGING_STOP,
-
-	/* Enumeration commands */
-        CMD_DISCOVER,
-	CMD_SYNC_LIST,
-	CMD_OK,
-	CMD_ERR,
-
-        /* must be last command */
-	CMD_COUNT
+	CMD_UNKNOWN = 0,    /**< Unrecognized or empty command */
+	CMD_INITIALIZE,     /**< Trigger full system initialization (enumeration + config) */
+	CMD_RECONFIGURE,    /**< Re-run configuration phase without re-enumeration */
+	CMD_START,          /**< Start ranging */
+	CMD_STOP,           /**< Stop ranging */
+	CMD_RESET,          /**< Reset system state */
+	CMD_GET_STATUS,     /**< Query current status */
+	CMD_GET_CONFIG,     /**< Query current configuration */
+	CMD_DEBUG_ON,       /**< Enable debug output */
+	CMD_DEBUG_OFF,      /**< Disable debug output */
+	CMD_SET_PARAM,      /**< Set a named parameter */
+	CMD_CALIBRATE,      /**< Run calibration procedure */
+	CMD_CONFIG_START,   /**< Instruct an anchor to begin measuring distances */
+	CMD_CONFIG_STOP,    /**< Instruct an anchor to finish configuration phase */
+	CMD_RANGING_START,  /**< Start continuous ranging on an anchor */
+	CMD_RANGING_STOP,   /**< Stop continuous ranging on an anchor */
+	CMD_DISCOVER,       /**< Broadcast from master to discover all nodes */
+	CMD_SYNC_LIST,      /**< Master sends the compiled device list to all nodes */
+	CMD_OK,             /**< Positive acknowledgement */
+	CMD_ERR,            /**< Negative acknowledgement / error */
+	CMD_COUNT           /**< Sentinel — must remain last */
 } cmd_code_t;
 
 /*==============================================================================
  * Parse Result
  *============================================================================*/
 
+/** @brief Result of parsing a command string. */
 typedef struct {
-	cmd_code_t code;
-	char* args;           /* Arguments after command (if any) */
-	uint8_t valid;        /* 1 if command recognized */
+	cmd_code_t code;  /**< Parsed command code, CMD_UNKNOWN if not recognized */
+	char* args;       /**< Pointer to argument substring (after command keyword), or NULL */
+	uint8_t valid;    /**< Non-zero if the command was recognized */
 } cmd_parse_result_t;
 
 /*==============================================================================

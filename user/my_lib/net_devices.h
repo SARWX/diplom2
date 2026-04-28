@@ -8,18 +8,24 @@
 #define MAX_DISTANCES MAX_ANCHORS
 #define MAC_ADDR_LEN 6
 
+/**
+ * @brief A single network node entry in the discovered-devices linked list.
+ */
 typedef struct net_device {
-	uint8_t mac_address[6];
-	uint8_t seq_id;
-	device_type_t device_type;
-	float* distances;
-	struct net_device* next;
+	uint8_t mac_address[6];       /**< MAC address (6 bytes, from EUI-64 or short addr) */
+	uint8_t seq_id;               /**< Sequential ID assigned during enumeration */
+	device_type_t device_type;    /**< Type of this node (anchor or tag) */
+	float* distances;             /**< Array[MAX_ANCHORS] of measured distances to other anchors (m) */
+	struct net_device* next;      /**< Next node in the singly-linked list */
 } net_device_t;
 
+/**
+ * @brief Head of the discovered-devices list with aggregate metadata.
+ */
 typedef struct {
-	net_device_t* head;
-	uint8_t total_anchors;
-	uint8_t initialized;
+	net_device_t* head;     /**< First node in the list */
+	uint8_t total_anchors;  /**< Number of anchors currently in the list */
+	uint8_t initialized;    /**< Non-zero after a successful enumeration */
 } net_devices_list_t;
 
 /* Инициализация */
