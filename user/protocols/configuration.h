@@ -8,8 +8,9 @@
 /* Запуск конфигурации на главной станции */
 int configuration_start_master(net_devices_list_t* devices);
 
-/* Обработка конфигурационных сообщений на любой станции */
-void configuration_handle_message(net_devices_list_t* devices, net_message_t* msg);
+/* Обработка конфигурационных сообщений на любой станции.
+ * Returns 1 if a measurement packet was processed, 0 otherwise. */
+int configuration_handle_message(net_devices_list_t* devices, net_message_t* msg);
 
 /* Измерение расстояний до всех устройств в списке — вызывается на анкере */
 void configuration_perform_measurements(net_devices_list_t* devices, uint8_t my_seq_id);

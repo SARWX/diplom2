@@ -110,9 +110,10 @@ static int verify_device_list(net_devices_list_t* local, net_devices_list_t* rem
 		dev = dev->next;
 	}
 
-	/* This device's own EUI must appear in the remote list */
-	const net_eui64_t* eui = net_get_src_eui64();
-	if (!net_device_find_by_mac(remote, eui->bytes))
+	/* This device itself must appear in the master's list (16-bit short address) */
+	net_addr16_t own = net_get_src_addr16();
+	uint8_t own_mac[MAC_ADDR_LEN] = {own & 0xFF, (own >> 8) & 0xFF, 0, 0, 0, 0};
+	if (!net_device_find_by_mac(remote, own_mac))
 		return -1;
 
 	return 0;
@@ -128,7 +129,8 @@ static int verify_device_list(net_devices_list_t* local, net_devices_list_t* rem
 static void drain_rx(net_devices_list_t* devices)
 {
 	net_message_t msg;
-	if (!net_rx_poll(&msg)) return;
+	if (!net_rx_poll(&msg))
+		return;
 	enumeration_handle_message(devices, &msg);
 	dwt_rxenable(DWT_START_RX_IMMEDIATE);
 }
@@ -254,8 +256,9 @@ static void handle_sync_list(net_devices_list_t* devices, net_message_t* msg)
 		goto send_err;
 
 	/* Store own seq_id (master included this device in the list) */
-	const net_eui64_t* eui = net_get_src_eui64();
-	net_device_t* self = net_device_find_by_mac(&remote, eui->bytes);
+	net_addr16_t own = net_get_src_addr16();
+	uint8_t own_mac[MAC_ADDR_LEN] = {own & 0xFF, (own >> 8) & 0xFF, 0, 0, 0, 0};
+	net_device_t* self = net_device_find_by_mac(&remote, own_mac);
 	if (self)
 		own_seq_id = self->seq_id;
 
