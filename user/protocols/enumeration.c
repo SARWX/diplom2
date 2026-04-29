@@ -144,6 +144,19 @@ int enumeration_start_master(net_devices_list_t* devices)
 
 		net_devices_clear(devices);
 
+		/* Add master itself first so it always appears in the authoritative list */
+		{
+			net_addr16_t master_addr = net_get_src_addr16();
+			uint8_t master_mac[MAC_ADDR_LEN] = {
+				master_addr & 0xFF, (master_addr >> 8) & 0xFF, 0, 0, 0, 0
+			};
+			net_device_t *self = net_device_create(master_mac, 0, DEVICE_TYPE_MAIN_ANCHOR);
+			if (self) {
+				net_device_add(devices, self);
+				own_seq_id = self->seq_id;
+			}
+		}
+
 		/* Phase 1: broadcast DISCOVER, poll for responses */
 		dwt_forcetrxoff();
 		if (net_send_broadcast((const uint8_t*)cmd_str(CMD_DISCOVER),
@@ -158,7 +171,7 @@ int enumeration_start_master(net_devices_list_t* devices)
 			drain_rx(devices);
 		}
 
-		if (devices->total_anchors == 0) {
+		if (devices->total_anchors <= 1) {
 			uart_puts("No devices found, retrying...\r\n");
 			continue;
 		}
@@ -175,13 +188,13 @@ int enumeration_start_master(net_devices_list_t* devices)
 		for (uint32_t t = 0; t < SYNC_WAIT_MS; t += ENUM_POLL_MS) {
 			sleep_ms(ENUM_POLL_MS);
 			drain_rx(devices);
-			if (sync_ok_count >= devices->total_anchors)
+			if (sync_ok_count >= devices->total_anchors - 1)
 				break;
 		}
 
 		net_state.mode = NET_MODE_IDLE;
 
-		if (sync_ok_count >= devices->total_anchors) {
+		if (sync_ok_count >= devices->total_anchors - 1) {
 			enumeration_complete = 1;
 			devices->initialized = 1;
 			uart_puts("Enumeration complete\r\n");
@@ -190,7 +203,7 @@ int enumeration_start_master(net_devices_list_t* devices)
 		}
 
 		uart_printf("Only %d/%d confirmed, retrying...\r\n",
-		            sync_ok_count, devices->total_anchors);
+		            sync_ok_count, devices->total_anchors - 1);
 	}
 
 	uart_puts("Enumeration failed\r\n");
@@ -222,10 +235,24 @@ static void handle_device_response(net_devices_list_t* devices, net_message_t* m
 	}
 }
 
-static void handle_discover(net_devices_list_t* devices)
+static void handle_discover(net_devices_list_t* devices, net_message_t* msg)
 {
 	/* Fresh start for this enumeration round */
 	net_devices_clear(devices);
+
+	/* Register the master (DISCOVER sender) as the first known device */
+	{
+		uint8_t master_mac[MAC_ADDR_LEN] = {0};
+		if (msg->src_is_eui64)
+			memcpy(master_mac, msg->src_eui64.bytes, MAC_ADDR_LEN);
+		else {
+			master_mac[0] = msg->src_addr16 & 0xFF;
+			master_mac[1] = (msg->src_addr16 >> 8) & 0xFF;
+		}
+		net_device_t *master = net_device_create(master_mac, 0, DEVICE_TYPE_MAIN_ANCHOR);
+		if (master)
+			net_device_add(devices, master);
+	}
 
 	/* Random backoff so devices don't all respond at the same instant */
 	sleep_ms(common_rand() % (ENUM_LISTEN_MS / 2));
@@ -327,7 +354,7 @@ void enumeration_handle_message(net_devices_list_t* devices, net_message_t* msg)
 
 	cmd_parse_result_t result = cmd_parse(cmd_buf);
 	switch (result.code) {
-	case CMD_DISCOVER: handle_discover(devices);            break;
+	case CMD_DISCOVER: handle_discover(devices, msg);       break;
 	case CMD_SYNC_LIST: handle_sync_list(devices, msg);     break;
 	case CMD_OK:        handle_ok(msg);                     break;
 	case CMD_ERR:       /* log or ignore */                 break;
