@@ -5,7 +5,7 @@
 #include "main_anchor.h"
 #include "anchor.h"
 #include "tag.h"
-#include <stdlib.h>
+#include "enumeration.h"
 
 /*==============================================================================
  * Hardware Configuration
@@ -67,7 +67,7 @@ int main(void)
 		while (1);
 	}
 	/* Setup rand generators for different start values */
-	srand(curr_dev->part_id);
+	enumeration_srand(curr_dev->part_id);
 	
 	/* Initialize network */
 	if (net_init(0, &curr_dev->eui64, DWT_FF_DATA_EN))

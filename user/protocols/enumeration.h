@@ -24,5 +24,7 @@ void enumeration_handle_message(net_devices_list_t* devices, net_message_t* msg)
 uint8_t enumeration_is_complete(void);
 /** @brief Returns this device's seq_id as assigned by the master in SYNC_LIST. */
 uint8_t enumeration_get_own_seq_id(void);
+/** @brief Seed the internal LCG random generator (call once at startup). */
+void enumeration_srand(uint32_t seed);
 
 #endif
