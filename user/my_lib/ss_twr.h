@@ -9,7 +9,8 @@
 #define SS_TWR_FUNC_RESP   0xE1
 
 
-int ss_twr_measure_distance(net_addr16_t dst_addr, float* distance);
-int ss_twr_handle_rx_frame(const net_message_t* msg);
+int  ss_twr_measure_distance(net_addr16_t dst_addr, float* distance);
+int  ss_twr_handle_rx_frame(const net_message_t* msg);
+void ss_twr_isr(const uint8_t *frame, uint16_t len);
 
 #endif
