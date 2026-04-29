@@ -85,6 +85,10 @@ extern net_state_t net_state;
  * Call this from every device's rx_ok_cb — never do more work in the ISR.
  */
 void net_rx_ok_isr(const dwt_cb_data_t *cb_data);
+/** @brief Shared RX-timeout callback — re-arms receiver. */
+void net_rx_to_isr(const dwt_cb_data_t *cb_data);
+/** @brief Shared RX-error callback — re-arms receiver. */
+void net_rx_err_isr(const dwt_cb_data_t *cb_data);
 
 /**
  * @brief Pop one frame from the ring buffer into msg (bottom half).

@@ -23,6 +23,18 @@ void net_rx_ok_isr(const dwt_cb_data_t *cb_data)
 	rx_rbuf_push(isr_rx_tmp, len);
 }
 
+void net_rx_to_isr(const dwt_cb_data_t *cb_data)
+{
+	(void)cb_data;
+	dwt_rxenable(DWT_START_RX_IMMEDIATE);
+}
+
+void net_rx_err_isr(const dwt_cb_data_t *cb_data)
+{
+	(void)cb_data;
+	dwt_rxenable(DWT_START_RX_IMMEDIATE);
+}
+
 int net_rx_poll(net_message_t *msg)
 {
 	uint16_t len;

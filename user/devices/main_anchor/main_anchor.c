@@ -1,13 +1,12 @@
 #include "main_anchor.h"
 #include "net_devices.h"
 #include "net_mac.h"
-#include "ss_twr.h"
+#include "net_dispatch.h"
+#include "enumeration.h"
+#include "configuration.h"
 #include "uart.h"
 #include "cmd_parser.h"
-#include "enumeration.h"
-#include "port.h"
 #include <string.h>
-#include <stdlib.h>
 
 /** @brief List of network devices discovered during enumeration. */
 static net_devices_list_t devices;
@@ -20,18 +19,37 @@ static uint8_t debug_enabled = 0;
 
 static void handle_initialize(void)
 {
-	uart_puts("\r\n>>> Handling INITIALIZE command\r\n");
-	
-	if (enumeration_start_master(&devices) == 0) {
-		uart_puts("System initialized successfully\r\n");
-	} else {
-		uart_puts("ERROR: System initialization failed\r\n");
+	uart_puts("\r\n>>> INITIALIZE\r\n");
+
+	if (enumeration_start_master(&devices) != 0) {
+		uart_puts("ERROR: Enumeration failed\r\n");
+		return;
 	}
+
+	if (configuration_start_master(&devices) != 0)
+		uart_puts("ERROR: Configuration failed\r\n");
+	else
+		uart_puts("System initialized successfully\r\n");
+}
+
+static void handle_reconfigure(void)
+{
+	uart_puts("\r\n>>> RECONFIGURE\r\n");
+
+	if (!devices.initialized) {
+		uart_puts("ERROR: Run INITIALIZE first\r\n");
+		return;
+	}
+
+	if (configuration_start_master(&devices) != 0)
+		uart_puts("ERROR: Reconfiguration failed\r\n");
+	else
+		uart_puts("Reconfiguration complete\r\n");
 }
 
 static void handle_reset(void)
 {
-	uart_puts("\r\n>>> Handling RESET command\r\n");
+	uart_puts("\r\n>>> RESET\r\n");
 	net_devices_clear(&devices);
 	devices.initialized = 0;
 	uart_puts("System reset complete\r\n");
@@ -39,7 +57,7 @@ static void handle_reset(void)
 
 static void handle_get_status(void)
 {
-	uart_puts("\r\n>>> Handling GET STATUS command\r\n");
+	uart_puts("\r\n>>> GET_STATUS\r\n");
 	uart_printf("Initialized: %s\r\n", devices.initialized ? "YES" : "NO");
 	uart_printf("Total devices: %d\r\n", devices.total_anchors);
 	uart_printf("Debug mode: %s\r\n", debug_enabled ? "ON" : "OFF");
@@ -59,25 +77,19 @@ static void process_command(cmd_parse_result_t cmd)
 		uart_puts("ERROR: Invalid command\r\n");
 		return;
 	}
-	
+
 	switch (cmd.code) {
-		case CMD_INITIALIZE:    handle_initialize(); break;
-		case CMD_RESET:         handle_reset(); break;
-		case CMD_GET_STATUS:    handle_get_status(); break;
-		case CMD_DEBUG_ON:      handle_debug(1); break;
-		case CMD_DEBUG_OFF:     handle_debug(0); break;
-		default:
-			uart_printf("Command not implemented: %s\r\n", cmd_str(cmd.code));
-			break;
+	case CMD_INITIALIZE:   handle_initialize();  break;
+	case CMD_RECONFIGURE:  handle_reconfigure(); break;
+	case CMD_RESET:        handle_reset();       break;
+	case CMD_GET_STATUS:   handle_get_status();  break;
+	case CMD_DEBUG_ON:     handle_debug(1);      break;
+	case CMD_DEBUG_OFF:    handle_debug(0);      break;
+	default:
+		uart_printf("Command not implemented: %s\r\n", cmd_str(cmd.code));
+		break;
 	}
 }
-
-/*==============================================================================
- * ISR Callbacks — top half only
- *============================================================================*/
-
-static void rx_ok_cb(const dwt_cb_data_t *cb_data)  { net_rx_ok_isr(cb_data); }
-static void rx_err_cb(const dwt_cb_data_t *cb_data) { (void)cb_data; dwt_rxenable(DWT_START_RX_IMMEDIATE); }
 
 /*==============================================================================
  * Device Interface
@@ -86,42 +98,24 @@ static void rx_err_cb(const dwt_cb_data_t *cb_data) { (void)cb_data; dwt_rxenabl
 void main_anchor_init(void)
 {
 	uart_init(115200);
-
-	port_set_deca_isr(dwt_isr);
-	dwt_setcallbacks(NULL, rx_ok_cb, NULL, rx_err_cb);
-	dwt_setinterrupt(DWT_INT_RFCG | DWT_INT_RPHE | DWT_INT_RFCE | DWT_INT_RFSL, 1);
-	dwt_rxenable(DWT_START_RX_IMMEDIATE);
-
+	net_radio_init();
 	net_devices_init(&devices);
 
 	uart_puts("\r\n========================================\r\n");
 	uart_puts("Main Anchor Station\r\n");
 	uart_puts("========================================\r\n");
-	uart_puts("Commands: INITIALIZE, RESET, GET_STATUS, DEBUG_ON/OFF\r\n");
+	uart_puts("Commands: INITIALIZE, RECONFIGURE, RESET, GET_STATUS, DEBUG_ON/OFF\r\n");
 	uart_puts("> ");
 }
 
 void main_anchor_loop(void)
 {
-	/* Process any pending network message (enumeration_start_master has its own
-	   drain loop during active enumeration; this covers all other phases) */
-	net_message_t msg;
-	if (net_rx_poll(&msg)) {
-		switch (net_state.mode) {
-		case NET_MODE_ENUMERATION:
-		case NET_MODE_SYNC_WAIT:
-			enumeration_handle_message(&devices, &msg);
-			break;
-		default:
-			break;
-		}
-		dwt_rxenable(DWT_START_RX_IMMEDIATE);
-	}
+	/* Drain any pending RX frames (enumeration/config/TWR handled automatically) */
+	net_process(&devices, NULL);
 
-	static char line_buffer[128];
-	uart_readline(line_buffer, sizeof(line_buffer));
-	cmd_parse_result_t cmd = cmd_parse(line_buffer);
-	process_command(cmd);
-
+	/* Block until the user sends a command over UART */
+	static char line_buf[128];
+	uart_readline(line_buf, sizeof(line_buf));
+	process_command(cmd_parse(line_buf));
 	uart_puts("\r\n> ");
 }

@@ -6,7 +6,6 @@
 #include "ss_twr.h"
 #include "deca_device_api.h"
 #include <string.h>
-#include <stdlib.h>
 
 #define CONFIG_RETRY_MAX  3
 #define CONFIG_WAIT_MS    500
@@ -107,6 +106,12 @@ int configuration_start_master(net_devices_list_t* devices)
 
 	net_device_t* current = devices->head;
 	while (current) {
+		/* Master doesn't need external configuration — skip itself */
+		if (current->device_type == DEVICE_TYPE_MAIN_ANCHOR) {
+			current = current->next;
+			continue;
+		}
+
 		net_addr16_t anchor_addr = device_addr(current);
 		uart_printf("Configuring device seq_id=%d addr=0x%04X\r\n",
 			    current->seq_id, anchor_addr);
