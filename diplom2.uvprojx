@@ -600,6 +600,16 @@
               <FileType>1</FileType>
               <FilePath>.\user\my_lib\ss_twr.c</FilePath>
             </File>
+            <File>
+              <FileName>common.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\user\my_lib\common.h</FilePath>
+            </File>
+            <File>
+              <FileName>common.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\user\my_lib\common.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

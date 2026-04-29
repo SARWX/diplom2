@@ -1,4 +1,5 @@
 #include "net_mac.h"
+#include "common.h"
 #include "deca_device_api.h"
 #include "deca_regs.h"
 #include <string.h>
@@ -10,23 +11,23 @@
 /** @brief Global MAC layer state instance. Defined here, declared extern in net_mac.h. */
 net_state_t net_state = {0};
 
+/* ISR-only scratch — separate from net_state.rx_buffer (main-loop parse buffer) */
+static uint8_t isr_rx_tmp[128];
+
 void net_rx_ok_isr(const dwt_cb_data_t *cb_data)
 {
-	if (cb_data->datalength > sizeof(net_state.rx_buffer)) {
-		dwt_rxenable(DWT_START_RX_IMMEDIATE);
+	uint16_t len = cb_data->datalength;
+	if (len > sizeof(isr_rx_tmp))
 		return;
-	}
-	dwt_readrxdata(net_state.rx_buffer, cb_data->datalength, 0);
-	net_state.rx_pending_len = cb_data->datalength;
-	net_state.rx_pending     = 1;
+	dwt_readrxdata(isr_rx_tmp, len, 0);
+	rx_rbuf_push(isr_rx_tmp, len);
 }
 
 int net_rx_poll(net_message_t *msg)
 {
-	if (!net_state.rx_pending)
+	uint16_t len;
+	if (!rx_rbuf_pop(net_state.rx_buffer, &len))
 		return 0;
-	uint16_t len = net_state.rx_pending_len;
-	net_state.rx_pending = 0;
 	return net_parse_message(net_state.rx_buffer, len, msg);
 }
 

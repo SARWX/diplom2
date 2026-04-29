@@ -71,10 +71,8 @@ typedef struct {
 	uint8_t use_eui64;              /**< Non-zero to use EUI-64 addressing in TX frames */
 	net_addr16_t short_addr;        /**< This node's 16-bit short address */
 	net_eui64_t  eui64;             /**< This node's EUI-64 address */
-	uint8_t rx_buffer[128];         /**< DW1000 receive buffer */
+	uint8_t rx_buffer[128];         /**< Working buffer for frame parsing (main loop only) */
 	volatile net_mode_t mode;       /**< Current operational mode */
-	volatile uint8_t  rx_pending;   /**< Set to 1 by rx_ok_cb when a frame is ready in rx_buffer */
-	volatile uint16_t rx_pending_len; /**< Length of the pending frame in rx_buffer */
 } net_state_t;
 
 /** @brief Global instance of the MAC layer state, shared across all modules. */
@@ -83,16 +81,16 @@ extern net_state_t net_state;
 /**
  * @brief Common top-half handler for DW1000 RX-OK interrupt.
  *
- * Copies the received frame into net_state.rx_buffer and sets rx_pending.
+ * Reads the received frame from DW1000 and pushes it into the ring buffer.
  * Call this from every device's rx_ok_cb — never do more work in the ISR.
  */
 void net_rx_ok_isr(const dwt_cb_data_t *cb_data);
 
 /**
- * @brief Drain one pending frame from rx_buffer into msg (bottom half).
+ * @brief Pop one frame from the ring buffer into msg (bottom half).
  *
- * Clears rx_pending. Returns 1 and fills msg if a valid frame was waiting,
- * 0 otherwise. The caller must call dwt_rxenable() after processing msg.
+ * Returns 1 and fills msg if a frame was available, 0 otherwise.
+ * The caller must call dwt_rxenable() after processing msg.
  */
 int net_rx_poll(net_message_t *msg);
 

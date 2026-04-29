@@ -1,16 +1,12 @@
 #include "enumeration.h"
 #include "net_mac.h"
+#include "common.h"
 #include "device_id.h"
 #include "cmd_parser.h"
 #include "sleep.h"
 #include "uart.h"
 #include "deca_device_api.h"
 #include <string.h>
-
-static uint32_t lcg_state = 1;
-
-void enumeration_srand(uint32_t seed) { lcg_state = seed ? seed : 1; }
-static uint32_t lcg_rand(void) { return (lcg_state = lcg_state * 1664525u + 1013904223u); }
 
 /** @brief Set to 1 after enumeration_start_master() completes successfully. */
 static uint8_t enumeration_complete = 0;
@@ -232,7 +228,7 @@ static void handle_discover(net_devices_list_t* devices)
 	net_devices_clear(devices);
 
 	/* Random backoff so devices don't all respond at the same instant */
-	sleep_ms(lcg_rand() % (ENUM_LISTEN_MS / 2));
+	sleep_ms(common_rand() % (ENUM_LISTEN_MS / 2));
 
 	const uint8_t* response;
 	switch (curr_dev->type) {
@@ -276,7 +272,7 @@ static void handle_sync_list(net_devices_list_t* devices, net_message_t* msg)
 	remote.head            = NULL; /* prevent double-free */
 
 	/* Staggered response to avoid collisions */
-	sleep_ms(lcg_rand() % (SYNC_WAIT_MS / 2));
+	sleep_ms(common_rand() % (SYNC_WAIT_MS / 2));
 	dwt_forcetrxoff();
 	if (msg->src_is_eui64)
 		net_send_to_64bit(&msg->src_eui64,
@@ -293,7 +289,7 @@ send_err:
 	net_devices_clear(&remote);
 	net_state.mode = NET_MODE_IDLE;
 
-	sleep_ms(lcg_rand() % (SYNC_WAIT_MS / 2));
+	sleep_ms(common_rand() % (SYNC_WAIT_MS / 2));
 	dwt_forcetrxoff();
 	if (msg->src_is_eui64)
 		net_send_to_64bit(&msg->src_eui64,
