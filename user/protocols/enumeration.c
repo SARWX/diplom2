@@ -65,10 +65,11 @@ static int deserialize_device_list(net_devices_list_t* devices,
 		uint8_t device_type = buffer[offset++];
 
 		if (!net_device_find_by_mac(devices, mac)) {
-			/* seq_id != 0: net_device_add will preserve it (not auto-assign) */
-			net_device_t* device = net_device_create(mac, seq_id, device_type);
-			if (device)
+			net_device_t* device = net_device_create(mac, device_type);
+			if (device) {
+				device->seq_id = seq_id;  /* preserve master-assigned id before add */
 				net_device_add(devices, device);
+			}
 		}
 	}
 	return 0;
@@ -150,7 +151,7 @@ int enumeration_start_master(net_devices_list_t* devices)
 			uint8_t master_mac[MAC_ADDR_LEN] = {
 				master_addr & 0xFF, (master_addr >> 8) & 0xFF, 0, 0, 0, 0
 			};
-			net_device_t *self = net_device_create(master_mac, 0, DEVICE_TYPE_MAIN_ANCHOR);
+			net_device_t *self = net_device_create(master_mac, DEVICE_TYPE_MAIN_ANCHOR);
 			if (self) {
 				net_device_add(devices, self);
 				own_seq_id = self->seq_id;
@@ -229,7 +230,7 @@ static void handle_device_response(net_devices_list_t* devices, net_message_t* m
 	device_type_t dtype = (msg->payload[0] == 'A') ? DEVICE_TYPE_ANCHOR : DEVICE_TYPE_TAG;
 
 	if (!net_device_find_by_mac(devices, mac)) {
-		net_device_t* device = net_device_create(mac, 0, dtype);
+		net_device_t* device = net_device_create(mac, dtype);
 		if (device)
 			net_device_add(devices, device);
 	}
@@ -249,7 +250,7 @@ static void handle_discover(net_devices_list_t* devices, net_message_t* msg)
 			master_mac[0] = msg->src_addr16 & 0xFF;
 			master_mac[1] = (msg->src_addr16 >> 8) & 0xFF;
 		}
-		net_device_t *master = net_device_create(master_mac, 0, DEVICE_TYPE_MAIN_ANCHOR);
+		net_device_t *master = net_device_create(master_mac, DEVICE_TYPE_MAIN_ANCHOR);
 		if (master)
 			net_device_add(devices, master);
 	}

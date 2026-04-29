@@ -32,7 +32,7 @@ typedef struct {
 void net_devices_init(net_devices_list_t* list);
 
 /* Управление списком */
-net_device_t* net_device_create(const uint8_t* mac, uint8_t seq_id, device_type_t device_type);
+net_device_t* net_device_create(const uint8_t* mac, device_type_t device_type);
 int net_device_add(net_devices_list_t* list, net_device_t* device);
 void net_device_remove(net_devices_list_t* list, uint8_t seq_id);
 void net_device_remove_by_mac(net_devices_list_t* list, const uint8_t* mac);

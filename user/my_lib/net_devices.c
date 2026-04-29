@@ -31,7 +31,7 @@ static void pool_free(net_device_t* device)
 	}
 }
 
-net_device_t* net_device_create(const uint8_t* mac, uint8_t seq_id, device_type_t device_type)
+net_device_t* net_device_create(const uint8_t* mac, device_type_t device_type)
 {
 	int slot = -1;
 	for (int i = 0; i < MAX_ANCHORS; i++) {
@@ -46,7 +46,7 @@ net_device_t* net_device_create(const uint8_t* mac, uint8_t seq_id, device_type_
 	net_device_t* device = &device_pool[slot];
 
 	memcpy(device->mac_address, mac, MAC_ADDR_LEN);
-	device->seq_id      = seq_id;
+	device->seq_id      = 0;
 	device->device_type = device_type;
 	device->next        = NULL;
 	device->distances   = dist_pool[slot];
@@ -55,8 +55,8 @@ net_device_t* net_device_create(const uint8_t* mac, uint8_t seq_id, device_type_
 		device->distances[i] = -1.0f;
 
 	if (debug_enabled)
-		uart_printf("Created device: seq_id=%d, MAC=%02X:%02X:%02X:%02X:%02X:%02X\r\n",
-			    seq_id, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+		uart_printf("Created device: MAC=%02X:%02X:%02X:%02X:%02X:%02X\r\n",
+			    mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
 	return device;
 }
