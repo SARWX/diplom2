@@ -2359,7 +2359,7 @@ uint8 dwt_checkirq(void)
  *          - RXFCG (through cbRxOk callback)
  *          - TXFRS (through cbTxDone callback)
  *          - RXRFTO/RXPTO (through cbRxTo callback)
- *          - RXPHE/RXFCE/RXRFSL/RXSFDTO/AFFREJ/LDEERR (through cbRxTo cbRxErr)
+ *          - RXPHE/RXFCE/RXRFSL/RXSFDTO/AFFREJ/LDEERR (through  cbRxErr)
  *        For all events, corresponding interrupts are cleared and necessary resets are performed. In addition, in the RXFCG case,
  *        received frame information and frame control are read before calling the callback. If double buffering is activated, it
  *        will also toggle between reception buffers once the reception callback processing has ended.

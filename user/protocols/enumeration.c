@@ -232,14 +232,12 @@ static void handle_discover(net_devices_list_t* devices)
 
 	const uint8_t* response;
 	switch (curr_dev->type) {
-	case DEVICE_TYPE_ANCHOR: response = (const uint8_t*)"A"; break;
-	case DEVICE_TYPE_TAG:    response = (const uint8_t*)"T"; break;
-	default:                 return;
+                case DEVICE_TYPE_ANCHOR: response = (const uint8_t*)"A"; break;
+                case DEVICE_TYPE_TAG:    response = (const uint8_t*)"T"; break;
+	        default:                 return;
 	}
 
 	net_send_broadcast(response, 1);
-	/* Keep listening for other devices' responses until SYNC_LIST arrives */
-	dwt_rxenable(DWT_START_RX_IMMEDIATE);
 }
 
 static void handle_sync_list(net_devices_list_t* devices, net_message_t* msg)
@@ -282,9 +280,8 @@ static void handle_sync_list(net_devices_list_t* devices, net_message_t* msg)
 	else
 		net_send_to_16bit(msg->src_addr16,
 		                  (const uint8_t*)cmd_str(CMD_OK), cmd_size(CMD_OK));
-	dwt_rxenable(DWT_START_RX_IMMEDIATE);
 
-        net_state.mode = NET_MODE_IDLE;
+	net_state.mode = NET_MODE_IDLE;
 	net_devices_clear(&remote);
 	return;
 
@@ -300,7 +297,6 @@ send_err:
 	else
 		net_send_to_16bit(msg->src_addr16,
 		                  (const uint8_t*)cmd_str(CMD_ERR), cmd_size(CMD_ERR));
-	dwt_rxenable(DWT_START_RX_IMMEDIATE);
 }
 
 static void handle_ok(net_message_t* msg)

@@ -22,13 +22,11 @@ static void rx_ok_cb(const dwt_cb_data_t *cb_data) {
 
 static void rx_to_cb(const dwt_cb_data_t *cb_data) {
         (void)cb_data;
-        if (net_state.mode == NET_MODE_IDLE)
-                dwt_rxenable(DWT_START_RX_IMMEDIATE); 
+        dwt_rxenable(DWT_START_RX_IMMEDIATE); 
 }
 static void rx_err_cb(const dwt_cb_data_t *cb_data) {
         (void)cb_data;
-        if (net_state.mode == NET_MODE_IDLE)
-                dwt_rxenable(DWT_START_RX_IMMEDIATE);
+        dwt_rxenable(DWT_START_RX_IMMEDIATE);
 }
 
 /*==============================================================================
@@ -39,8 +37,8 @@ void anchor_init(void)
 {
 	port_set_deca_isr(dwt_isr);
 	dwt_setcallbacks(NULL, rx_ok_cb, rx_to_cb, rx_err_cb);
-	dwt_setinterrupt(DWT_INT_RFCG | DWT_INT_RPHE | DWT_INT_RFCE |
-	                 DWT_INT_RFSL | DWT_INT_RFTO, 1);
+        dwt_setinterrupt(DWT_INT_RFCG | DWT_INT_RPHE | DWT_INT_RFCE |
+                DWT_INT_RFSL | DWT_INT_RFTO | DWT_INT_RXPTO | DWT_INT_SFDT, 1);
 
 	net_devices_init(&devices);
 	dwt_rxenable(DWT_START_RX_IMMEDIATE);

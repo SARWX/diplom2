@@ -1,7 +1,7 @@
 #include "uart.h"
 #include "stm32f10x.h"
-#include <stdarg.h>
-#include <stdio.h>
+// #include <stdarg.h>
+// #include <stdio.h>
 
 void uart_init(uint32_t baudrate)
 {
@@ -51,13 +51,19 @@ void uart_puts(const char* str)
 
 void uart_printf(const char* format, ...)
 {
-	char buffer[256];
-	va_list args;
-	va_start(args, format);
-	vsnprintf(buffer, sizeof(buffer), format, args);
-	va_end(args);
-	uart_puts(buffer);
+	(void)format;
+	/* Do nothing - disabled for size optimization */
 }
+
+// void uart_printf(const char* format, ...)
+// {
+// 	char buffer[256];
+// 	va_list args;
+// 	va_start(args, format);
+// 	vsnprintf(buffer, sizeof(buffer), format, args);
+// 	va_end(args);
+// 	uart_puts(buffer);
+// }
 
 void uart_readline(char* buffer, uint16_t max_len)
 {
