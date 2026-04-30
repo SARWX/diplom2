@@ -8,7 +8,7 @@
 #define TX_ANT_DLY 16436
 #define RX_ANT_DLY 16436
 #define POLL_TX_TO_RESP_RX_DLY_UUS 140
-#define RESP_RX_TIMEOUT_UUS 210
+#define RESP_RX_TIMEOUT_UUS 2100
 #define POLL_RX_TO_RESP_TX_DLY_UUS 330
 
 static uint8_t twr_frame_seq = 0;
@@ -19,10 +19,9 @@ static int twr_send_poll(net_addr16_t dst_addr)
 	uint8_t poll_msg[12];
 	uint16_t len;
 	
-	/* Build frame with function code 0xE0 */
 	len = net_build_frame(poll_msg, NULL, dst_addr, twr_frame_seq++, 
-						(const uint8_t*)"\xE0", 1);
-	return net_send_frame(poll_msg, len, 1);
+				(const uint8_t*)"\xE0", 1);
+	return net_send_frame_ranging(poll_msg, len, 1);
 }
 
 static float twr_calc_distance(uint32 poll_tx_ts, uint32 resp_rx_ts, 
@@ -43,8 +42,13 @@ int ss_twr_measure_distance(net_addr16_t dst_addr, float* distance)
 
 	irq_state = decamutexon();
 
-	/* net_send_frame(response_expected=1) blocks until RESPONSE arrives,
-	 * then fills net_state.rx_buffer and clears RXFCG before returning. */
+	dwt_forcetrxoff();
+	dwt_rxreset();
+
+	/* Set TWR-specific timeouts */
+	dwt_setrxaftertxdelay(POLL_TX_TO_RESP_RX_DLY_UUS);
+	dwt_setrxtimeout(RESP_RX_TIMEOUT_UUS);
+
 	if (twr_send_poll(dst_addr) != 1)
 		goto restore;
 
@@ -57,10 +61,12 @@ int ss_twr_measure_distance(net_addr16_t dst_addr, float* distance)
 	}
 
 	*distance = twr_calc_distance(poll_tx_ts, resp_rx_ts, poll_rx_ts, resp_tx_ts);
-	twr_last_distance = *distance;
 	ret = 0;
 
 restore:
+	/* Restore to safe defaults (no timeout, no extra delay) */
+	dwt_setrxaftertxdelay(0);
+	dwt_setrxtimeout(0);
 	decamutexoff(irq_state);
 	return ret;
 }

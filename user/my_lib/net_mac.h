@@ -169,6 +169,7 @@ uint16_t net_build_frame(uint8_t* buffer, const net_eui64_t* dest_eui,
 int net_send_frame(uint8_t* frame, uint16_t frame_len,
 				uint8_t response_expected);
 
+int net_send_frame_ranging(uint8_t* frame, uint16_t frame_len, uint8_t response_expected);
 /**
  * Send broadcast message (uses current device's source address)
  */

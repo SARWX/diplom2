@@ -8,6 +8,10 @@
 
 void net_radio_init(void)
 {
+	/* Antenna delays for accurate timestamping */
+	dwt_setrxantennadelay(16436);
+	dwt_settxantennadelay(16436);
+
 	port_set_deca_isr(dwt_isr);
 	dwt_setcallbacks(NULL, net_rx_ok_isr, net_rx_to_isr, net_rx_err_isr);
 	dwt_setinterrupt(DWT_INT_RFCG | DWT_INT_RPHE | DWT_INT_RFCE |

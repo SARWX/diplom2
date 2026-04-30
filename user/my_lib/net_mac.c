@@ -194,7 +194,7 @@ int net_init(int use_eui64, net_eui64_t* eui64, uint16_t filter_mask)
 
 	dwt_enableframefilter(filter_mask);
 
-        net_state.mode = NET_MODE_IDLE;
+	net_state.mode = NET_MODE_IDLE;
 	
 	net_state.initialized = 1;
 	return 0;
@@ -262,7 +262,9 @@ uint16_t net_build_frame(uint8_t* buffer,
  * Public Functions - Transmission
  *============================================================================*/
 
-int net_send_frame(uint8_t* frame, uint16_t frame_len, uint8_t response_expected)
+/* Internal send function */
+static int net_send_frame_raw(uint8_t* frame, uint16_t frame_len, 
+			       uint8_t response_expected, uint8_t ranging)
 {
 	uint32_t status_reg;
 	
@@ -271,26 +273,29 @@ int net_send_frame(uint8_t* frame, uint16_t frame_len, uint8_t response_expected
 	}
 	
 	dwt_writetxdata(frame_len, frame, 0);
-	dwt_writetxfctrl(frame_len, 0, 0);
+	dwt_writetxfctrl(frame_len, 0, ranging);
 	
 	if (response_expected) {
-		dwt_starttx(DWT_START_TX_IMMEDIATE | DWT_RESPONSE_EXPECTED);
+		if (dwt_starttx(DWT_START_TX_IMMEDIATE | DWT_RESPONSE_EXPECTED) != DWT_SUCCESS)
+			return -1;
 	} else {
-		dwt_starttx(DWT_START_TX_IMMEDIATE);
+		if (dwt_starttx(DWT_START_TX_IMMEDIATE) != DWT_SUCCESS)
+			return -1;
 	}
 	
+	/* Wait for TX completion */
 	while (!((status_reg = dwt_read32bitreg(SYS_STATUS_ID)) & SYS_STATUS_TXFRS)) {
 		if (status_reg & SYS_STATUS_TXERR) {
 			dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXERR);
 			return -1;
 		}
 	}
-	
 	dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS);
 	
+	/* Wait for response if expected */
 	if (response_expected) {
 		while (!((status_reg = dwt_read32bitreg(SYS_STATUS_ID)) & 
-				 (SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_TO | SYS_STATUS_ALL_RX_ERR))) {
+			(SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_TO | SYS_STATUS_ALL_RX_ERR))) {
 			/* Wait */
 		}
 		
@@ -302,12 +307,25 @@ int net_send_frame(uint8_t* frame, uint16_t frame_len, uint8_t response_expected
 			dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG);
 			return 1;
 		} else {
+			/* Clear errors, but don't reset RX (caller handles it) */
 			dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_TO | SYS_STATUS_ALL_RX_ERR);
+			dwt_rxreset();
 			return 0;
 		}
 	}
 	
 	return 1;
+}
+
+/* Public wrappers */
+int net_send_frame(uint8_t* frame, uint16_t frame_len, uint8_t response_expected)
+{
+    return net_send_frame_raw(frame, frame_len, response_expected, 0);
+}
+
+int net_send_frame_ranging(uint8_t* frame, uint16_t frame_len, uint8_t response_expected)
+{
+    return net_send_frame_raw(frame, frame_len, response_expected, 1);
 }
 
 int net_send_broadcast(const uint8_t* payload, uint16_t payload_len)
