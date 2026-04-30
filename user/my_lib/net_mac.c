@@ -22,13 +22,14 @@ void net_rx_ok_isr(const dwt_cb_data_t *cb_data)
 		return;
 	dwt_readrxdata(isr_rx_tmp, len, 0);
 
-	/* TWR POLL is time-critical (330 µs response window) — handle in ISR */
+	/* TWR POLL is time-critical — handle in ISR, re-arm is done inside ss_twr_isr */
 	if (len >= 12 && isr_rx_tmp[9] == SS_TWR_FUNC_POLL) {
 		ss_twr_isr(isr_rx_tmp, len);
 		return;
 	}
 
 	rx_rbuf_push(isr_rx_tmp, len);
+	dwt_rxenable(DWT_START_RX_IMMEDIATE);
 }
 
 void net_rx_to_isr(const dwt_cb_data_t *cb_data)
@@ -271,7 +272,8 @@ static int net_send_frame_raw(uint8_t* frame, uint16_t frame_len,
 	if (!net_state.initialized) {
 		return -1;
 	}
-	
+
+	dwt_forcetrxoff();
 	dwt_writetxdata(frame_len, frame, 0);
 	dwt_writetxfctrl(frame_len, 0, ranging);
 	

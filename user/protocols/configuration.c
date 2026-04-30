@@ -68,10 +68,8 @@ void configuration_send_measurements(net_devices_list_t* devices, net_addr16_t d
 		current = current->next;
 	}
 
-	if (offset > 0) {
-                dwt_forcetrxoff();
+	if (offset > 0)
 		net_send_to_16bit(dst_addr, buffer, offset);
-        }
 }
 
 static int handle_measurements(net_devices_list_t* devices, const uint8_t* data, uint16_t len)
@@ -121,7 +119,6 @@ int configuration_start_master(net_devices_list_t* devices)
 
 		int got_measurements = 0;
 		for (int retry = 0; retry < CONFIG_RETRY_MAX; retry++) {
-                        dwt_forcetrxoff();
 			net_send_to_16bit(anchor_addr,
 					  (const uint8_t*)cmd_str(CMD_CONFIG_START),
 					  cmd_size(CMD_CONFIG_START));
@@ -146,11 +143,10 @@ int configuration_start_master(net_devices_list_t* devices)
 				    retry + 1, CONFIG_RETRY_MAX, current->seq_id);
 		}
 
-                dwt_forcetrxoff();
 		net_send_to_16bit(anchor_addr,
 				  (const uint8_t*)cmd_str(CMD_CONFIG_STOP),
 				  cmd_size(CMD_CONFIG_STOP));
-                dwt_rxenable(DWT_START_RX_IMMEDIATE);
+		dwt_rxenable(DWT_START_RX_IMMEDIATE);
 
 		current = current->next;
 		sleep_ms(100);
@@ -175,7 +171,6 @@ void configuration_perform_measurements(net_devices_list_t* devices, uint8_t my_
 	while (target) {
 		if (target->seq_id != my_seq_id) {
 			float distance;
-                        dwt_forcetrxoff();
 			if (ss_twr_measure_distance(device_addr(target), &distance) == 0)
 				net_device_update_distance(my_device, target->seq_id, distance);
 			sleep_ms(50);
