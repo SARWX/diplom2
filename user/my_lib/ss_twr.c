@@ -7,9 +7,13 @@
 #define SPEED_OF_LIGHT 299702547
 #define TX_ANT_DLY 16436
 #define RX_ANT_DLY 16436
+/* At 110 kbps, poll frame body (PHR+PSDU ~900 µs) is fully received after RMARKER
+ * before RXFCG fires and the ISR runs. Response delay must exceed that so that the
+ * scheduled TX time is still in the future when dwt_starttx(DELAYED) is called.
+ * If the deadline has already passed, DW1000 waits for the next timer wrap (~17 s). */
 #define POLL_TX_TO_RESP_RX_DLY_UUS 140
-#define RESP_RX_TIMEOUT_UUS 2100
-#define POLL_RX_TO_RESP_TX_DLY_UUS 330
+#define RESP_RX_TIMEOUT_UUS        2100
+#define POLL_RX_TO_RESP_TX_DLY_UUS 1500
 
 static uint8_t twr_frame_seq = 0;
 static float twr_last_distance = 0;
@@ -91,6 +95,7 @@ int ss_twr_handle_rx_frame(const net_message_t* msg)
 
 		resp_tx_time = (uint32)((poll_rx_ts +
 			(uint64_t)POLL_RX_TO_RESP_TX_DLY_UUS * UUS_TO_DWT_TIME) >> 8);
+		resp_tx_time &= 0xFFFFFFFEUL; /* align to DW1000 delayed-TX resolution */
 		resp_tx_ts_est = (resp_tx_time << 8) + TX_ANT_DLY;
 
 		for (int i = 0; i < 4; i++) {
@@ -101,7 +106,8 @@ int ss_twr_handle_rx_frame(const net_message_t* msg)
 		dwt_setdelayedtrxtime(resp_tx_time);
 		dwt_writetxdata(len + 8, resp_msg, 0);
 		dwt_writetxfctrl(len + 8, 0, 1);
-		dwt_starttx(DWT_START_TX_DELAYED);
+		if (dwt_starttx(DWT_START_TX_DELAYED) != DWT_SUCCESS)
+			return 0;
 
 		while (!(dwt_read32bitreg(SYS_STATUS_ID) & SYS_STATUS_TXFRS))
 			;
@@ -137,6 +143,7 @@ void ss_twr_isr(const uint8_t *frame, uint16_t len)
 
 	resp_tx_time = (uint32)((poll_rx_ts +
 		(uint64_t)POLL_RX_TO_RESP_TX_DLY_UUS * UUS_TO_DWT_TIME) >> 8);
+	resp_tx_time &= 0xFFFFFFFEUL; /* align to DW1000 delayed-TX resolution */
 	resp_tx_ts_est = (resp_tx_time << 8) + TX_ANT_DLY;
 
 	for (int i = 0; i < 4; i++) {
@@ -147,10 +154,10 @@ void ss_twr_isr(const uint8_t *frame, uint16_t len)
 	dwt_setdelayedtrxtime(resp_tx_time);
 	dwt_writetxdata(resp_len + 8, resp_msg, 0);
 	dwt_writetxfctrl(resp_len + 8, 0, 1);
-	dwt_starttx(DWT_START_TX_DELAYED);
-
-	while (!(dwt_read32bitreg(SYS_STATUS_ID) & SYS_STATUS_TXFRS))
-		;
-	dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS);
+	if (dwt_starttx(DWT_START_TX_DELAYED) == DWT_SUCCESS) {
+		while (!(dwt_read32bitreg(SYS_STATUS_ID) & SYS_STATUS_TXFRS))
+			;
+		dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS);
+	}
 	dwt_rxenable(DWT_START_RX_IMMEDIATE);
 }
