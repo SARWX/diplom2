@@ -6,9 +6,8 @@
  * Predefined Device Configurations
  *============================================================================*/
 
-/* Функции по умолчанию */
-static void default_init(void) { ; }
-static void default_loop(void) { ; }
+static void default_init(void) {}
+static void default_loop(void) {}
 
 /** @brief Predefined config object for the master anchor node (EUI prefix 0x01). */
 device_config_t DEVICE_MAIN_ANCHOR = {
@@ -57,26 +56,23 @@ static uint8_t mapping_count = 0;
 
 int device_register(const device_registration_t* reg)
 {
-	if (mapping_count >= MAX_MAPPINGS) {
+	if (mapping_count >= MAX_MAPPINGS)
 		return -1;
-	}
-	
-	/* Устанавливаем функции */
+
 	reg->dev->init_func = reg->init_func;
 	reg->dev->main_loop_func = reg->loop_func;
-	
-	/* Добавляем маппинг */
+
 	device_mappings[mapping_count].part_id = reg->part_id;
 	device_mappings[mapping_count].dev = reg->dev;
 	mapping_count++;
-	
+
 	return 0;
 }
 
 device_config_t* device_init_from_hardware(void)
 {
 	uint32_t part_id = dwt_getpartid();
-	
+
 	for (uint8_t i = 0; i < mapping_count; i++) {
 		if (device_mappings[i].part_id == part_id) {
 			curr_dev = device_mappings[i].dev;
@@ -84,18 +80,6 @@ device_config_t* device_init_from_hardware(void)
 			return curr_dev;
 		}
 	}
-	
+
 	return NULL;
-}
-
-#define MAPPING_COUNT (sizeof(device_mapping) / sizeof(device_mapping[0]))
-
-/*==============================================================================
- * Device Identification
- *============================================================================*/
-
-static void device_set_current(device_config_t* dev, uint32_t part_id)
-{
-	curr_dev = dev;
-	curr_dev->part_id = part_id;
 }

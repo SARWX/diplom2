@@ -28,24 +28,24 @@ typedef struct {
 	uint8_t initialized;    /**< Non-zero after a successful enumeration */
 } net_devices_list_t;
 
-/* Инициализация */
+/* Initialization */
 void net_devices_init(net_devices_list_t* list);
 
-/* Управление списком */
+/* List management */
 net_device_t* net_device_create(const uint8_t* mac, device_type_t device_type);
 int net_device_add(net_devices_list_t* list, net_device_t* device);
 void net_device_remove(net_devices_list_t* list, uint8_t seq_id);
 void net_device_remove_by_mac(net_devices_list_t* list, const uint8_t* mac);
 void net_devices_clear(net_devices_list_t* list);
 
-/* Поиск */
+/* Lookup */
 net_device_t* net_device_find_by_seq(net_devices_list_t* list, uint8_t seq_id);
 net_device_t* net_device_find_by_mac(net_devices_list_t* list, const uint8_t* mac);
 
-/* Вывод */
+/* Debug */
 void net_devices_print(net_devices_list_t* list);
 
-/* Расстояния */
+/* Distance tracking */
 void net_device_update_distance(net_device_t* device, uint8_t to_seq_id, float distance);
 
 void net_devices_set_debug(uint8_t enable);

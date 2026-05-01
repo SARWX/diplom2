@@ -146,9 +146,8 @@ cmd_parse_result_t cmd_parse(const char* buffer)
 	
 	/* Store arguments if any — copy to static buffer to avoid dangling pointer */
 	if (arg_start_idx > 0 && result.valid) {
-		/* Skip leading whitespace */
-	const char* src_args = cmd_buffer + arg_start_idx;
-			while (*src_args == ' ' || *src_args == '\t') src_args++;
+		const char* src_args = cmd_buffer + arg_start_idx;
+		while (*src_args == ' ' || *src_args == '\t') src_args++;
 		if (*src_args != '\0') {
 			strncpy(cmd_result_args, src_args, sizeof(cmd_result_args) - 1);
 			cmd_result_args[sizeof(cmd_result_args) - 1] = '\0';
@@ -173,12 +172,12 @@ uint8_t cmd_len(cmd_code_t cmd)
 {
 	for (size_t i = 0; i < CMD_TABLE_SIZE; i++) {
 		if (cmd_table[i].code == cmd)
-		return cmd_table[i].len;
+			return cmd_table[i].len;
 	}
 	return cmd_table[CMD_UNKNOWN].len;
 }
 
 uint8_t cmd_size(cmd_code_t cmd)
 {
-    return cmd_len(cmd) + 1; /* add NULL-terminator */
+	return cmd_len(cmd) + 1; /* includes null terminator */
 }

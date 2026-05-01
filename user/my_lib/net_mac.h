@@ -14,7 +14,6 @@
 #define MAX_PAYLOAD_SIZE        116
 #define NET_FCS_LEN             2  /* Frame Check Sequence length (CRC-16) */
 
-
 /*==============================================================================
  * Data Types
  *============================================================================*/
@@ -94,7 +93,6 @@ void net_rx_err_isr(const dwt_cb_data_t *cb_data);
  * @brief Pop one frame from the ring buffer into msg (bottom half).
  *
  * Returns 1 and fills msg if a frame was available, 0 otherwise.
- * The caller must call dwt_rxenable() after processing msg.
  */
 int net_rx_poll(net_message_t *msg);
 
@@ -103,43 +101,27 @@ int net_rx_poll(net_message_t *msg);
  *============================================================================*/
 
 /**
- * Initialize MAC layer
- * @param use_eui64 - if 1, use 64-bit addressing for TX, else use 16-bit
- * @param short_addr - 16-bit short address (used if use_eui64=0 or as fallback)
- * @param eui64 - 64-bit EUI address (used if use_eui64=1)
- * @param filter_mask - frame filtering mask
+ * @brief Initialize MAC layer.
+ * @param use_eui64 - if 1, use EUI-64 addressing for TX; if 0, use 16-bit short address
+ * @param eui64 - this node's EUI-64 address
+ * @param filter_mask - DW1000 frame filtering mask (e.g. DWT_FF_DATA_EN)
  * @return 0 on success, -1 on error
  */
 int net_init(int use_eui64, net_eui64_t* eui64, uint16_t filter_mask);
-/**
- * Get current source address (as 16-bit)
- */
+
+/** @brief Get this node's 16-bit short address. */
 net_addr16_t net_get_src_addr16(void);
-
-/**
- * Get current source address (as 64-bit)
- */
+/** @brief Get this node's EUI-64 address. */
 const net_eui64_t* net_get_src_eui64(void);
-
-/**
- * Get current addressing mode
- */
+/** @brief Returns non-zero if this node uses EUI-64 addressing. */
 int net_use_eui64(void);
 
 /*==============================================================================
  * Frame Building Helpers
  *============================================================================*/
 
-/**
- * Build frame control field
- * @param dest_mode - destination addressing mode
- * @param src_mode - source addressing mode
- * @param pan_id_compression - PAN ID compression flag
- * @param ack_request - ACK request flag
- * @return 16-bit frame control value
- */
-uint16_t net_build_frame_control(net_addr_mode_t dest_mode, 
-	net_addr_mode_t src_mode, int pan_id_compression, int ack_request);
+uint16_t net_build_frame_control(net_addr_mode_t dest_mode, net_addr_mode_t src_mode,
+				 int pan_id_compression, int ack_request);
 
 /**
  * Build MAC header (only header, no payload)
@@ -163,13 +145,9 @@ uint16_t net_build_frame(uint8_t* buffer, const net_eui64_t* dest_eui,
  * Transmission
  *============================================================================*/
 
-/**
- * Send a raw frame
- */
-int net_send_frame(uint8_t* frame, uint16_t frame_len,
-				uint8_t response_expected);
-
+int net_send_frame(uint8_t* frame, uint16_t frame_len, uint8_t response_expected);
 int net_send_frame_ranging(uint8_t* frame, uint16_t frame_len, uint8_t response_expected);
+
 /**
  * Send broadcast message (uses current device's source address)
  */

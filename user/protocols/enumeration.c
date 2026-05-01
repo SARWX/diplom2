@@ -24,7 +24,7 @@ static uint8_t own_seq_id = 0;
  *============================================================================*/
 
 static void serialize_device_list(net_devices_list_t* devices,
-                                   uint8_t* buffer, uint16_t* len)
+				   uint8_t* buffer, uint16_t* len)
 {
 	uint16_t offset  = 0;
 	net_device_t* dev = devices->head;
@@ -260,9 +260,9 @@ static void handle_discover(net_devices_list_t* devices, net_message_t* msg)
 
 	const uint8_t* response;
 	switch (curr_dev->type) {
-                case DEVICE_TYPE_ANCHOR: response = (const uint8_t*)"A"; break;
-                case DEVICE_TYPE_TAG:    response = (const uint8_t*)"T"; break;
-	        default:                 return;
+	case DEVICE_TYPE_ANCHOR: response = (const uint8_t*)"A"; break;
+	case DEVICE_TYPE_TAG:    response = (const uint8_t*)"T"; break;
+	default:                 return;
 	}
 
 	net_send_broadcast(response, 1);

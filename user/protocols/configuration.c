@@ -103,7 +103,7 @@ int configuration_start_master(net_devices_list_t* devices)
 	}
 
 	uart_puts("\r\n=== Starting CONFIGURATION ===\r\n");
-        net_state.mode = NET_MODE_CONFIG;
+	net_state.mode = NET_MODE_CONFIG;
 
 	net_device_t* current = devices->head;
 	while (current) {
@@ -151,7 +151,7 @@ int configuration_start_master(net_devices_list_t* devices)
 		current = current->next;
 		sleep_ms(100);
 	}
-        net_state.mode = NET_MODE_IDLE;
+	net_state.mode = NET_MODE_IDLE;
 
 	uart_puts("Configuration completed\r\n");
 	return 0;

@@ -53,34 +53,29 @@ int main(void)
 		while (1);
 	}
 	spi_set_rate_high();
-	
+
 	dwt_configure(&config);
 	dwt_setleds(DWT_LEDS_ENABLE);
-	
-	/* Register all devices */
+
 	for (uint8_t i = 0; i < NUM_DEVICES; i++) {
 		device_register(&devices[i]);
 	}
-	
-	/* Detect current device */
+
 	if (!device_init_from_hardware()) {
 		while (1);
 	}
-	/* Setup rand generators for different start values */
 	common_srand(curr_dev->part_id);
-	
-	/* Initialize network */
+
 	if (net_init(0, &curr_dev->eui64, DWT_FF_DATA_EN))
 		while (1);
 
-	/* Run device */
 	if (curr_dev->init_func)
 		curr_dev->init_func();
-	
+
 	while (1) {
 		if (curr_dev->main_loop_func)
 			curr_dev->main_loop_func();
 	}
-	
+
 	return 0;
 }
