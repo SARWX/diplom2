@@ -171,7 +171,7 @@ void configuration_perform_measurements(net_devices_list_t* devices, uint8_t my_
 	while (target) {
 		if (target->seq_id != my_seq_id) {
 			float distance;
-			if (ss_twr_measure_distance(&distance) == 0)
+			if (ss_twr_measure_distance(device_addr(target), &distance) == 0)
 				net_device_update_distance(my_device, target->seq_id, distance);
 			sleep_ms(50);
 		}

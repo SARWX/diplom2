@@ -31,7 +31,7 @@ void main_anchor_loop(void)
 
 	if (strcmp(upper, "TEST_SS_TWR") == 0) {
 		float dist;
-		if (ss_twr_measure_distance(&dist) == 0)
+		if (ss_twr_measure_distance(2, &dist) == 0)
 			uart_printf("dist=%.2f m\r\n", dist);
 		else
 			uart_puts("TIMEOUT/ERR\r\n");
