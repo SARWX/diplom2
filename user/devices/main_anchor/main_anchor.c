@@ -9,6 +9,7 @@
 #include "deca_device_api.h"
 #include "deca_regs.h"
 #include <string.h>
+#include <ctype.h>
 
 static dwt_config_t config = {
 	2,               /* Channel number. */
@@ -56,20 +57,7 @@ static void resp_msg_get_ts(uint8 *ts_field, uint32 *ts)
 		*ts += ts_field[i] << (i * 8);
 }
 
-void main_anchor_init(void)
-{
-	uart_init(115200);
-	uart_puts("\r\n=== SS-TWR INITIATOR ===\r\n");
-
-	dwt_configure(&config);
-	dwt_setrxantennadelay(RX_ANT_DLY);
-	dwt_settxantennadelay(TX_ANT_DLY);
-	dwt_enableframefilter(DWT_FF_NOTYPE_EN);
-	dwt_setrxaftertxdelay(POLL_TX_TO_RESP_RX_DLY_UUS);
-	dwt_setrxtimeout(RESP_RX_TIMEOUT_UUS);
-}
-
-void main_anchor_loop(void)
+static void do_measure(void)
 {
 	tx_poll_msg[ALL_MSG_SN_IDX] = frame_seq_nb;
 	dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS);
@@ -111,16 +99,46 @@ void main_anchor_loop(void)
 			tof = ((rtd_init - rtd_resp * (1 - clockOffsetRatio)) / 2.0) * DWT_TIME_UNITS;
 			distance = tof * SPEED_OF_LIGHT;
 
-			uart_printf("[%3u] dist=%.2f m\r\n", (unsigned)frame_seq_nb, (float)distance);
+			uart_printf("dist=%.2f m\r\n", (float)distance);
 		} else {
-			uart_printf("[%3u] RX mismatch\r\n", (unsigned)frame_seq_nb);
+			uart_puts("RX mismatch\r\n");
 		}
 	} else {
 		dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_TO | SYS_STATUS_ALL_RX_ERR);
 		dwt_rxreset();
-		uart_printf("[%3u] TIMEOUT/ERR  status=0x%08lX\r\n",
-			    (unsigned)frame_seq_nb, status_reg);
+		uart_printf("TIMEOUT/ERR status=0x%08X\r\n", status_reg);
 	}
+}
 
-	sleep_ms(1000);
+void main_anchor_init(void)
+{
+	uart_init(115200);
+	uart_puts("\r\n=== SS-TWR INITIATOR ===\r\n");
+	uart_puts("Commands: TEST_SS_TWR\r\n> ");
+
+	dwt_configure(&config);
+	dwt_setrxantennadelay(RX_ANT_DLY);
+	dwt_settxantennadelay(TX_ANT_DLY);
+	dwt_enableframefilter(DWT_FF_NOTYPE_EN);
+	dwt_setrxaftertxdelay(POLL_TX_TO_RESP_RX_DLY_UUS);
+	dwt_setrxtimeout(RESP_RX_TIMEOUT_UUS);
+}
+
+void main_anchor_loop(void)
+{
+	static char line_buf[32];
+	uart_readline(line_buf, sizeof(line_buf));
+
+	/* uppercase compare */
+	char upper[32];
+	for (int i = 0; i < 31 && line_buf[i]; i++)
+		upper[i] = toupper((unsigned char)line_buf[i]);
+	upper[31] = '\0';
+
+	if (strcmp(upper, "TEST_SS_TWR") == 0) {
+		do_measure();
+	} else {
+		uart_puts("Unknown command\r\n");
+	}
+	uart_puts("> ");
 }

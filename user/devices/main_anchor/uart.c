@@ -83,6 +83,14 @@ void uart_printf(const char *fmt, ...)
 		while (*fmt >= '0' && *fmt <= '9')
 			width = width * 10 + (*fmt++ - '0');
 
+		uint8_t precision = 6;
+		if (*fmt == '.') {
+			fmt++;
+			precision = 0;
+			while (*fmt >= '0' && *fmt <= '9')
+				precision = precision * 10 + (*fmt++ - '0');
+		}
+
 		switch (*fmt) {
 		case 'd': {
 			int v = va_arg(ap, int);
@@ -102,6 +110,19 @@ void uart_printf(const char *fmt, ...)
 		case 'X':
 			put_uint(va_arg(ap, uint32_t), 16, 1, width, zpad);
 			break;
+		case 'f': {
+			double v = va_arg(ap, double);
+			if (v < 0) { uart_putchar('-'); v = -v; }
+			uint32_t int_part = (uint32_t)v;
+			put_uint(int_part, 10, 0, width, zpad);
+			if (precision > 0) {
+				uart_putchar('.');
+				double frac = v - int_part;
+				for (uint8_t p = 0; p < precision; p++) frac *= 10.0;
+				put_uint((uint32_t)frac, 10, 0, precision, 1);
+			}
+			break;
+		}
 		case 's':
 			uart_puts(va_arg(ap, const char *));
 			break;
