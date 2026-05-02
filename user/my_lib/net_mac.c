@@ -1,5 +1,4 @@
 #include "net_mac.h"
-#include "ss_twr.h"
 #include "common.h"
 #include "deca_device_api.h"
 #include "deca_regs.h"
@@ -21,12 +20,6 @@ void net_rx_ok_isr(const dwt_cb_data_t *cb_data)
 	if (len > sizeof(isr_rx_tmp))
 		return;
 	dwt_readrxdata(isr_rx_tmp, len, 0);
-
-	/* TWR POLL is time-critical — handle in ISR, re-arm is done inside ss_twr_isr */
-	if (len >= 12 && isr_rx_tmp[9] == SS_TWR_FUNC_POLL) {
-		ss_twr_isr(isr_rx_tmp, len);
-		return;
-	}
 
 	rx_rbuf_push(isr_rx_tmp, len);
 	dwt_rxenable(DWT_START_RX_IMMEDIATE);

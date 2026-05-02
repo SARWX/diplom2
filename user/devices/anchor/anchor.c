@@ -21,8 +21,8 @@ static dwt_config_t config = {
 	(129 + 8 - 8)    /* SFD timeout (preamble length + 1 + SFD length - PAC size). */
 };
 
-#define TX_ANT_DLY 16436
-#define RX_ANT_DLY 16436
+#define TX_ANT_DLY 16724
+#define RX_ANT_DLY 16724
 
 static uint8 rx_poll_msg[] = {0x41, 0x88, 0, 0xCA, 0xDE, 'W', 'A', 'V', 'E', 0xE0, 0, 0};
 static uint8 tx_resp_msg[] = {0x41, 0x88, 0, 0xCA, 0xDE, 'V', 'E', 'W', 'A', 0xE1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};

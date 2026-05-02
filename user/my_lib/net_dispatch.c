@@ -1,6 +1,5 @@
 #include "net_dispatch.h"
 #include "net_mac.h"
-#include "ss_twr.h"
 #include "enumeration.h"
 #include "configuration.h"
 #include "deca_device_api.h"
@@ -24,10 +23,6 @@ int net_process(net_devices_list_t *devices, net_idle_fn_t idle_fn)
 	net_message_t msg;
 	if (!net_rx_poll(&msg))
 		return 0;
-
-	/* TWR is time-critical — handle before mode dispatch */
-	if (ss_twr_handle_rx_frame(&msg))
-		goto rearm;
 
 	switch (net_state.mode) {
 	case NET_MODE_ENUMERATION:
