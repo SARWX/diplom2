@@ -11,18 +11,18 @@
  * Hardware Configuration
  *============================================================================*/
 
-/** @brief DW1000 radio configuration: channel 2, 64 MHz PRF, 110 kbps, 1024-chip preamble. */
+/** @brief DW1000 radio configuration: channel 2, 64 MHz PRF, 6.8 Mbps, 128-chip preamble. */
 static dwt_config_t config = {
 	2,               /* Channel number */
 	DWT_PRF_64M,     /* Pulse repetition frequency */
-	DWT_PLEN_1024,   /* Preamble length */
-	DWT_PAC32,       /* Preamble acquisition chunk size */
+	DWT_PLEN_128,    /* Preamble length */
+	DWT_PAC8,        /* Preamble acquisition chunk size */
 	9,               /* TX preamble code */
 	9,               /* RX preamble code */
-	1,               /* Use non-standard SFD */
-	DWT_BR_110K,     /* Data rate */
+	0,               /* Use standard SFD */
+	DWT_BR_6M8,      /* Data rate */
 	DWT_PHRMODE_STD, /* PHY header mode */
-	(1025 + 64 - 32) /* SFD timeout */
+	(129 + 8 - 8)    /* SFD timeout */
 };
 
 /*==============================================================================

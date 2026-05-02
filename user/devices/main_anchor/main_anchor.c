@@ -5,19 +5,6 @@
 #include <string.h>
 #include <ctype.h>
 
-static dwt_config_t config = {
-	2,               /* Channel number. */
-	DWT_PRF_64M,     /* Pulse repetition frequency. */
-	DWT_PLEN_128,    /* Preamble length. Used in TX only. */
-	DWT_PAC8,        /* Preamble acquisition chunk size. Used in RX only. */
-	9,               /* TX preamble code. Used in TX only. */
-	9,               /* RX preamble code. Used in RX only. */
-	0,               /* 0 to use standard SFD, 1 to use non-standard SFD. */
-	DWT_BR_6M8,      /* Data rate. */
-	DWT_PHRMODE_STD, /* PHY header mode. */
-	(129 + 8 - 8)    /* SFD timeout (preamble length + 1 + SFD length - PAC size). */
-};
-
 #define TX_ANT_DLY 16724
 #define RX_ANT_DLY 16724
 
@@ -27,7 +14,6 @@ void main_anchor_init(void)
 	uart_puts("\r\n=== SS-TWR INITIATOR ===\r\n");
 	uart_puts("Commands: TEST_SS_TWR\r\n> ");
 
-	dwt_configure(&config);
 	dwt_setrxantennadelay(RX_ANT_DLY);
 	dwt_settxantennadelay(TX_ANT_DLY);
 	dwt_enableframefilter(DWT_FF_NOTYPE_EN);
