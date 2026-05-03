@@ -63,10 +63,13 @@ int ss_twr_measure_distance(net_addr16_t dst_addr, float *distance)
 	uint8_t poll_msg[12];
 	uint32_t status_reg;
 	uint8_t poll_payload = SS_TWR_FUNC_POLL;
+	int ret = -1;
 
 	uint16_t len = net_build_frame(poll_msg, NULL, dst_addr, frame_seq_nb++,
 				       &poll_payload, 1);
 
+	decaIrqStatus_t irq = decamutexon();
+	dwt_forcetrxoff();
 	dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS);
 	dwt_writetxdata(len, poll_msg, 0);
 	dwt_writetxfctrl(len, 0, 1);
@@ -78,10 +81,13 @@ int ss_twr_measure_distance(net_addr16_t dst_addr, float *distance)
 		 (SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_TO | SYS_STATUS_ALL_RX_ERR)))
 		;
 
+	decamutexoff(irq);
+	dwt_rxenable(DWT_START_RX_IMMEDIATE);
+
 	if (!(status_reg & SYS_STATUS_RXFCG)) {
 		dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_TO | SYS_STATUS_ALL_RX_ERR);
 		dwt_rxreset();
-		return -1;
+		goto out;
 	}
 
 	dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG);
@@ -90,24 +96,28 @@ int ss_twr_measure_distance(net_addr16_t dst_addr, float *distance)
 		dwt_readrxdata(rx_buffer, frame_len, 0);
 
 	if (frame_len < FUNC_CODE_IDX + 1 || rx_buffer[FUNC_CODE_IDX] != SS_TWR_FUNC_RESP)
-		return -1;
+		goto out;
 
-	uint32_t poll_tx_ts = dwt_readtxtimestamplo32();
-	uint32_t resp_rx_ts = dwt_readrxtimestamplo32();
+	{
+		uint32_t poll_tx_ts = dwt_readtxtimestamplo32();
+		uint32_t resp_rx_ts = dwt_readrxtimestamplo32();
+		uint32_t poll_rx_ts, resp_tx_ts;
+		ts_get(&rx_buffer[POLL_RX_TS_IDX], &poll_rx_ts);
+		ts_get(&rx_buffer[RESP_TX_TS_IDX], &resp_tx_ts);
 
-	uint32_t poll_rx_ts, resp_tx_ts;
-	ts_get(&rx_buffer[POLL_RX_TS_IDX], &poll_rx_ts);
-	ts_get(&rx_buffer[RESP_TX_TS_IDX], &resp_tx_ts);
+		int32_t rtd_init = resp_rx_ts - poll_tx_ts;
+		int32_t rtd_resp = resp_tx_ts - poll_rx_ts;
+		double tof = ((rtd_init - rtd_resp) / 2.0) * DWT_TIME_UNITS;
+		*distance = (float)(tof * SPEED_OF_LIGHT);
 
-	int32_t rtd_init = resp_rx_ts - poll_tx_ts;
-	int32_t rtd_resp = resp_tx_ts - poll_rx_ts;
-	double tof = ((rtd_init - rtd_resp) / 2.0) * DWT_TIME_UNITS;
-	*distance = (float)(tof * SPEED_OF_LIGHT);
+		uart_printf("  poll_tx=%u resp_rx=%u\r\n", poll_tx_ts, resp_rx_ts);
+		uart_printf("  poll_rx=%u resp_tx=%u\r\n", poll_rx_ts, resp_tx_ts);
+		uart_printf("  rtd_init=%d rtd_resp=%d\r\n", (int)rtd_init, (int)rtd_resp);
+		ret = 0;
+	}
 
-	uart_printf("  poll_tx=%u resp_rx=%u\r\n", poll_tx_ts, resp_rx_ts);
-	uart_printf("  poll_rx=%u resp_tx=%u\r\n", poll_rx_ts, resp_tx_ts);
-	uart_printf("  rtd_init=%d rtd_resp=%d\r\n", (int)rtd_init, (int)rtd_resp);
-	return 0;
+out:
+	return ret;
 }
 
 /*

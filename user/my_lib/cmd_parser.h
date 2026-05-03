@@ -30,6 +30,7 @@ typedef enum {
 	CMD_SYNC_LIST,      /**< Master sends the compiled device list to all nodes */
 	CMD_OK,             /**< Positive acknowledgement */
 	CMD_ERR,            /**< Negative acknowledgement / error */
+	CMD_TEST_SS_TWR,    /**< UART: run SS-TWR test to all devices and print distances */
 	CMD_COUNT           /**< Sentinel — must remain last */
 } cmd_code_t;
 

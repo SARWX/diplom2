@@ -49,6 +49,7 @@ static const cmd_map_t cmd_table[] = {
 	{"SYNC_LIST",       9,  CMD_SYNC_LIST},
 	{"OK",              2,  CMD_OK},
 	{"ERR",             3,  CMD_ERR},
+	{"TEST_SS_TWR",     11, CMD_TEST_SS_TWR},
 };
 
 #define CMD_TABLE_SIZE (sizeof(cmd_table) / sizeof(cmd_map_t))
