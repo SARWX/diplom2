@@ -11,8 +11,8 @@
  * Responder delay 3500 µs gives ~3200 µs ISR budget.
  * Initiator enables RX explicitly after TXFRS (~20 µs); response
  * arrives ~3200 µs later, well inside the 5000 µs timeout. */
-#define RESP_RX_TIMEOUT_UUS        50000
-#define POLL_RX_TO_RESP_TX_DLY_UUS 35000
+#define RESP_RX_TIMEOUT_UUS        5000
+#define POLL_RX_TO_RESP_TX_DLY_UUS 2000
 
 static uint8_t twr_frame_seq = 0;
 
@@ -52,8 +52,7 @@ static float twr_calc_distance(uint32 poll_tx_ts, uint32 resp_rx_ts,
 {
 	int32 rtd_init = resp_rx_ts - poll_tx_ts;
 	int32 rtd_resp = resp_tx_ts - poll_rx_ts;
-	float clock_offset = dwt_readcarrierintegrator() * 0.945e-6f;
-	double tof = ((rtd_init - rtd_resp * (1 - clock_offset)) / 2.0) * DWT_TIME_UNITS;
+	double tof = ((rtd_init - rtd_resp) / 2.0) * DWT_TIME_UNITS;
 	return (float)(tof * SPEED_OF_LIGHT);
 }
 
@@ -115,6 +114,7 @@ int ss_twr_measure_distance(net_addr16_t dst_addr, float* distance)
 restore:
     dwt_setrxtimeout(0);
     decamutexoff(irq_state);
+    dwt_rxenable(DWT_START_RX_IMMEDIATE);
     return ret;
 }
 
