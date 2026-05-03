@@ -22,9 +22,9 @@ void net_rx_ok_isr(const dwt_cb_data_t *cb_data)
 		return;
 	dwt_readrxdata(isr_rx_tmp, len, 0);
 
-	if (len >= 10 && isr_rx_tmp[9] == SS_TWR_FUNC_POLL) {
-		ss_twr_handle_poll(isr_rx_tmp, len);
-		dwt_rxenable(DWT_START_RX_IMMEDIATE);
+	/* TWR POLL is time-critical — handle in ISR, re-arm is done inside ss_twr_isr */
+	if (len >= 12 && isr_rx_tmp[9] == SS_TWR_FUNC_POLL) {
+		ss_twr_isr(isr_rx_tmp, len);
 		return;
 	}
 

@@ -1,16 +1,18 @@
 #include "anchor.h"
+#include "net_mac.h"
 #include "net_dispatch.h"
 #include "net_devices.h"
-#include "net_mac.h"
 #include "enumeration.h"
+#include "configuration.h"
 #include "cmd_parser.h"
-#include "deca_device_api.h"
 #include <string.h>
 
-#define TX_ANT_DLY 16724
-#define RX_ANT_DLY 16724
-
+/** @brief List of network devices discovered during enumeration. */
 static net_devices_list_t devices;
+
+/*==============================================================================
+ * Idle-mode handler — called by net_process for NET_MODE_IDLE frames
+ *============================================================================*/
 
 static void anchor_idle(net_devices_list_t *devs, net_message_t *msg)
 {
@@ -26,18 +28,27 @@ static void anchor_idle(net_devices_list_t *devs, net_message_t *msg)
 		net_state.mode = NET_MODE_ENUMERATION;
 		enumeration_handle_message(devs, msg);
 		break;
+
+	case CMD_CONFIG_START: {
+		net_addr16_t master_addr = msg->src_addr16;
+		net_state.mode = NET_MODE_CONFIG;
+		configuration_perform_measurements(devs, enumeration_get_own_seq_id());
+		configuration_send_measurements(devs, master_addr);
+		net_state.mode = NET_MODE_IDLE;
+		break;
+	}
 	default:
 		break;
 	}
 }
 
+/*==============================================================================
+ * Public Functions
+ *============================================================================*/
+
 void anchor_init(void)
 {
 	net_radio_init();
-	dwt_setrxantennadelay(RX_ANT_DLY);
-	dwt_settxantennadelay(TX_ANT_DLY);
-	net_state.short_addr = 2;
-	dwt_setaddress16(2);
 	net_devices_init(&devices);
 }
 

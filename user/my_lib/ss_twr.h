@@ -3,9 +3,13 @@
 
 #include "net_mac.h"
 
-#define SS_TWR_FUNC_POLL 0xE0
+/* SS TWR function codes */
+#define SS_TWR_FUNC_POLL   0xE0
+#define SS_TWR_FUNC_RESP   0xE1
 
-int ss_twr_measure_distance(net_addr16_t dst_addr, float *distance);
-int ss_twr_handle_poll(const uint8_t *frame, uint16_t frame_len);
+void ss_twr_resp_init(void);
+int  ss_twr_measure_distance(net_addr16_t dst_addr, float* distance);
+int  ss_twr_handle_rx_frame(const net_message_t* msg);
+void ss_twr_isr(const uint8_t *frame, uint16_t len);
 
 #endif /* SS_TWR_H */
