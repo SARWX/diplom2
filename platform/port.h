@@ -147,7 +147,7 @@ int is_switch_on(uint16_t GPIOpin);
 
 ITStatus EXTI_GetITEnStatus(uint32_t x);
 
-#define port_GetEXT_IRQStatus()             EXTI_GetITEnStatus(DECAIRQ_EXTI_IRQn)
+#define port_GetEXT_IRQStatus()             ((NVIC->ISER[(uint32_t)(DECAIRQ_EXTI_IRQn) >> 5] >> ((uint32_t)(DECAIRQ_EXTI_IRQn) & 0x1F)) & 1u)
 #define port_DisableEXT_IRQ()               NVIC_DisableIRQ(DECAIRQ_EXTI_IRQn)
 #define port_EnableEXT_IRQ()                NVIC_EnableIRQ(DECAIRQ_EXTI_IRQn)
 #define port_CheckEXT_IRQ()                 GPIO_ReadInputDataBit(DECAIRQ_GPIO, DECAIRQ)
