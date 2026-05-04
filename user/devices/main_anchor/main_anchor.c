@@ -19,6 +19,28 @@ static uint8_t debug_enabled = 0;
  * Command Handlers
  *============================================================================*/
 
+static void print_distance_table(void)
+{
+	uart_puts("\r\n=== Distance Table ===\r\n");
+	net_device_t* dev = devices.head;
+	while (dev) {
+		for (int j = 1; j <= devices.total_anchors; j++) {
+			if (j == dev->seq_id) continue;
+			if (dev->distances[j] == DISTANCE_INVALID) continue;
+			uart_printf("  %d -> %d : %.3f m\r\n",
+			            dev->seq_id, j, dev->distances[j]);
+		}
+		dev = dev->next;
+	}
+	uart_puts("======================\r\n");
+}
+
+static void run_own_measurements(void)
+{
+	uart_puts("Master measuring distances...\r\n");
+	configuration_perform_measurements(&devices, enumeration_get_own_seq_id());
+}
+
 static void handle_initialize(void)
 {
 	uart_puts("\r\n>>> INITIALIZE\r\n");
@@ -28,10 +50,14 @@ static void handle_initialize(void)
 		return;
 	}
 
-	if (configuration_start_master(&devices) != 0)
+	if (configuration_start_master(&devices) != 0) {
 		uart_puts("ERROR: Configuration failed\r\n");
-	else
-		uart_puts("System initialized successfully\r\n");
+		return;
+	}
+
+	run_own_measurements();
+	uart_puts("System initialized successfully\r\n");
+	print_distance_table();
 }
 
 static void handle_reconfigure(void)
@@ -43,10 +69,14 @@ static void handle_reconfigure(void)
 		return;
 	}
 
-	if (configuration_start_master(&devices) != 0)
+	if (configuration_start_master(&devices) != 0) {
 		uart_puts("ERROR: Reconfiguration failed\r\n");
-	else
-		uart_puts("Reconfiguration complete\r\n");
+		return;
+	}
+
+	run_own_measurements();
+	uart_puts("Reconfiguration complete\r\n");
+	print_distance_table();
 }
 
 static void handle_reset(void)
