@@ -8,6 +8,9 @@
 #define MAX_DISTANCES MAX_ANCHORS
 #define MAC_ADDR_LEN 6
 
+/** @brief Sentinel value meaning "distance not yet measured". */
+#define DISTANCE_INVALID (-3.4028235E+38f)
+
 /**
  * @brief A single network node entry in the discovered-devices linked list.
  */

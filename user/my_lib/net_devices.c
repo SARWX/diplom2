@@ -52,7 +52,7 @@ net_device_t* net_device_create(const uint8_t* mac, device_type_t device_type)
 	device->distances   = dist_pool[slot];
 
 	for (int i = 0; i < MAX_DISTANCES; i++)
-		device->distances[i] = -1.0f;
+		device->distances[i] = DISTANCE_INVALID;
 
 	if (debug_enabled)
 		uart_printf("Created device: MAC=%02X:%02X:%02X:%02X:%02X:%02X\r\n",

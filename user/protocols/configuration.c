@@ -8,7 +8,7 @@
 #include <string.h>
 
 #define CONFIG_RETRY_MAX  3
-#define CONFIG_WAIT_MS    500
+#define CONFIG_WAIT_MS    2000
 #define CONFIG_POLL_MS    20
 
 /**
@@ -54,7 +54,7 @@ void configuration_send_measurements(net_devices_list_t* devices, net_addr16_t d
 
 	while (current && offset < 120) {
 		for (int i = 1; i <= devices->total_anchors; i++) {
-			if (current->distances[i] >= 0) {
+			if (current->distances[i] != DISTANCE_INVALID) {
 				measurement_t m;
 				m.from_seq_id = current->seq_id;
 				m.to_seq_id = i;
@@ -127,7 +127,10 @@ int configuration_start_master(net_devices_list_t* devices)
 				sleep_ms(CONFIG_POLL_MS);
 				net_message_t msg;
 				if (net_rx_poll(&msg)) {
-					if (configuration_handle_message(devices, &msg) > 0)
+					int r = configuration_handle_message(devices, &msg);
+					uart_printf("Config rx: src=0x%04X r=%d len=%d\r\n",
+					            (unsigned)msg.src_addr16, r, msg.payload_len);
+					if (r > 0)
 						got_measurements = 1;
 				}
 				if (got_measurements)
