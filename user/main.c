@@ -31,9 +31,11 @@ static dwt_config_t config = {
 
 /** @brief Static table mapping DW1000 Part IDs to device configs and entry points. */
 static const device_registration_t devices[] = {
-	{0x545541A2, &DEVICE_MAIN_ANCHOR, main_anchor_init, main_anchor_loop},
-	{0x1454DA34, &DEVICE_ANCHOR,      anchor_init,      anchor_loop},
-	{0xABCD1234, &DEVICE_TAG,         tag_init,         tag_loop},
+	{0x545541A2, {{0x01,0,0,0,0,0,0,0}}, &DEVICE_MAIN_ANCHOR, main_anchor_init, main_anchor_loop},
+	{0x1454DA34, {{0x02,0,0,0,0,0,0,0}}, &DEVICE_ANCHOR,      anchor_init,      anchor_loop},
+	{0x4DA298B5, {{0x03,0,0,0,0,0,0,0}}, &DEVICE_ANCHOR,      anchor_init,      anchor_loop},
+	{0x0DA2C13B, {{0x04,0,0,0,0,0,0,0}}, &DEVICE_ANCHOR,      anchor_init,      anchor_loop},
+	{0x157240B1, {{0x05,0,0,0,0,0,0,0}}, &DEVICE_TAG,         tag_init,         tag_loop},
 };
 
 #define NUM_DEVICES (sizeof(devices) / sizeof(devices[0]))

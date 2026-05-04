@@ -222,13 +222,17 @@ uint16_t net_build_frame(uint8_t* buffer,
  *============================================================================*/
 
 static int net_send_frame_raw(uint8_t* frame, uint16_t frame_len,
-			      uint8_t response_expected, uint8_t ranging)
+			      uint8_t response_expected, uint8_t ranging,
+			      uint8_t restore_rx)
 {
 	uint32_t status_reg;
 
 	if (!net_state.initialized)
 		return -1;
 
+	/* Grab mutex only for the forcetrxoff→starttx window so an AFFREJ ISR
+	 * cannot call dwt_rxenable between the two and cause starttx to fail. */
+	decaIrqStatus_t irq_state = decamutexon();
 	dwt_forcetrxoff();
 	dwt_writetxdata(frame_len, frame, 0);
 	dwt_writetxfctrl(frame_len, 0, ranging);
@@ -236,20 +240,31 @@ static int net_send_frame_raw(uint8_t* frame, uint16_t frame_len,
 	uint32_t tx_mode = response_expected
 		? DWT_START_TX_IMMEDIATE | DWT_RESPONSE_EXPECTED
 		: DWT_START_TX_IMMEDIATE;
-	if (dwt_starttx(tx_mode) != DWT_SUCCESS)
+	if (dwt_starttx(tx_mode) != DWT_SUCCESS) {
+		if (restore_rx)
+			dwt_rxenable(DWT_START_RX_IMMEDIATE);
+		decamutexoff(irq_state);
 		return -1;
+	}
+	decamutexoff(irq_state);
 
 	while (!((status_reg = dwt_read32bitreg(SYS_STATUS_ID)) & SYS_STATUS_TXFRS)) {
 		if (status_reg & SYS_STATUS_TXERR) {
 			dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXERR);
+			if (restore_rx)
+				dwt_rxenable(DWT_START_RX_IMMEDIATE);
 			return -1;
 		}
 	}
 	dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS);
 
-	if (!response_expected)
+	if (!response_expected) {
+		if (restore_rx)
+			dwt_rxenable(DWT_START_RX_IMMEDIATE);
 		return 1;
+	}
 
+	/* response_expected: DW1000 switches to RX automatically after TX */
 	while (!((status_reg = dwt_read32bitreg(SYS_STATUS_ID)) &
 		 (SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_TO | SYS_STATUS_ALL_RX_ERR)))
 		;
@@ -270,12 +285,12 @@ static int net_send_frame_raw(uint8_t* frame, uint16_t frame_len,
 /* Public wrappers */
 int net_send_frame(uint8_t* frame, uint16_t frame_len, uint8_t response_expected)
 {
-	return net_send_frame_raw(frame, frame_len, response_expected, 0);
+	return net_send_frame_raw(frame, frame_len, response_expected, 0, 1);
 }
 
 int net_send_frame_ranging(uint8_t* frame, uint16_t frame_len, uint8_t response_expected)
 {
-	return net_send_frame_raw(frame, frame_len, response_expected, 1);
+	return net_send_frame_raw(frame, frame_len, response_expected, 1, 0);
 }
 
 int net_send_broadcast(const uint8_t* payload, uint16_t payload_len)

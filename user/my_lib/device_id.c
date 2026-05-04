@@ -18,11 +18,11 @@ device_config_t DEVICE_MAIN_ANCHOR = {
 	.main_loop_func = default_loop,
 };
 
-/** @brief Predefined config object for a regular anchor node (EUI prefix 0x02). */
+/** @brief Shared template for any regular anchor; EUI-64 is filled in by device_init_from_hardware(). */
 device_config_t DEVICE_ANCHOR = {
 	.part_id = 0,
 	.type = DEVICE_TYPE_ANCHOR,
-	.eui64 = {0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+	.eui64 = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
 	.init_func = default_init,
 	.main_loop_func = default_loop,
 };
@@ -31,7 +31,7 @@ device_config_t DEVICE_ANCHOR = {
 device_config_t DEVICE_TAG = {
 	.part_id = 0,
 	.type = DEVICE_TYPE_TAG,
-	.eui64 = {0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+	.eui64 = {0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
 	.init_func = default_init,
 	.main_loop_func = default_loop,
 };
@@ -45,10 +45,11 @@ device_config_t* curr_dev = NULL;
 
 #define MAX_MAPPINGS 16
 
-/** @brief Table mapping DW1000 Part IDs to device_config_t instances. */
+/** @brief Table mapping DW1000 Part IDs to device_config_t instances and their EUI-64. */
 static struct {
 	uint32_t part_id;
 	device_config_t* dev;
+	net_eui64_t eui64;
 } device_mappings[MAX_MAPPINGS];
 
 /** @brief Number of entries currently registered in device_mappings[]. */
@@ -63,7 +64,8 @@ int device_register(const device_registration_t* reg)
 	reg->dev->main_loop_func = reg->loop_func;
 
 	device_mappings[mapping_count].part_id = reg->part_id;
-	device_mappings[mapping_count].dev = reg->dev;
+	device_mappings[mapping_count].dev     = reg->dev;
+	device_mappings[mapping_count].eui64   = reg->eui64;
 	mapping_count++;
 
 	return 0;
@@ -77,6 +79,7 @@ device_config_t* device_init_from_hardware(void)
 		if (device_mappings[i].part_id == part_id) {
 			curr_dev = device_mappings[i].dev;
 			curr_dev->part_id = part_id;
+			curr_dev->eui64   = device_mappings[i].eui64;
 			return curr_dev;
 		}
 	}

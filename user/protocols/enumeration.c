@@ -100,18 +100,11 @@ static int send_sync_list(net_devices_list_t* devices, net_addr16_t dst_addr)
 
 static int verify_device_list(net_devices_list_t* local, net_devices_list_t* remote)
 {
-	/* Every locally-discovered device must appear in remote with the same type.
-	   Local list may be incomplete (we might have missed some early responses),
-	   so we only check containment, not count equality. */
-	net_device_t* dev = local->head;
-	while (dev) {
-		net_device_t* rdv = net_device_find_by_mac(remote, dev->mac_address);
-		if (!rdv || rdv->device_type != dev->device_type)
-			return -1;
-		dev = dev->next;
-	}
+	(void)local;
 
-	/* This device itself must appear in the master's list (16-bit short address) */
+	/* Only check that this device itself is in the master's authoritative list.
+	 * We do NOT verify that every locally-seen peer is in the list — peers can
+	 * respond late (after master already sent SYNC_LIST) and that is fine. */
 	net_addr16_t own = net_get_src_addr16();
 	uint8_t own_mac[MAC_ADDR_LEN] = {own & 0xFF, (own >> 8) & 0xFF, 0, 0, 0, 0};
 	if (!net_device_find_by_mac(remote, own_mac))
@@ -126,14 +119,17 @@ static int verify_device_list(net_devices_list_t* local, net_devices_list_t* rem
 
 #define ENUM_POLL_MS 20
 
-/* Drain one pending RX frame and dispatch it to enumeration_handle_message. */
+/* Drain one pending RX frame and dispatch it to enumeration_handle_message.
+ * Do NOT call dwt_rxenable here — net_rx_ok_isr already re-arms the receiver
+ * immediately after each frame.  Calling it again from the main loop would
+ * restart (reset) the DW1000 RX state machine mid-preamble and silently drop
+ * the next incoming frame. */
 static void drain_rx(net_devices_list_t* devices)
 {
 	net_message_t msg;
 	if (!net_rx_poll(&msg))
 		return;
 	enumeration_handle_message(devices, &msg);
-	dwt_rxenable(DWT_START_RX_IMMEDIATE);
 }
 
 int enumeration_start_master(net_devices_list_t* devices)
@@ -159,13 +155,10 @@ int enumeration_start_master(net_devices_list_t* devices)
 		}
 
 		/* Phase 1: broadcast DISCOVER, poll for responses */
-		dwt_forcetrxoff();
+		net_state.mode = NET_MODE_ENUMERATION;
 		if (net_send_broadcast((const uint8_t*)cmd_str(CMD_DISCOVER),
 		                       cmd_size(CMD_DISCOVER)) < 0)
 			continue;
-
-		net_state.mode = NET_MODE_ENUMERATION;
-		dwt_rxenable(DWT_START_RX_IMMEDIATE);
 
 		for (uint32_t t = 0; t < ENUM_LISTEN_MS; t += ENUM_POLL_MS) {
 			sleep_ms(ENUM_POLL_MS);
@@ -177,14 +170,16 @@ int enumeration_start_master(net_devices_list_t* devices)
 			continue;
 		}
 
+		uart_printf("Phase 1 done: found %d device(s)\r\n", devices->total_anchors);
+
 		/* Phase 2: broadcast SYNC_LIST, poll for OK responses */
 		net_state.mode = NET_MODE_SYNC_WAIT;
 		sync_ok_count  = 0;
 		memset(sync_ok_senders, 0, sizeof(sync_ok_senders));
 
-		dwt_forcetrxoff();
 		send_sync_list(devices, NET_BROADCAST_ADDR);
-		dwt_rxenable(DWT_START_RX_IMMEDIATE);
+
+		uart_printf("Phase 2: waiting %d OK(s)...\r\n", devices->total_anchors - 1);
 
 		for (uint32_t t = 0; t < SYNC_WAIT_MS; t += ENUM_POLL_MS) {
 			sleep_ms(ENUM_POLL_MS);
@@ -192,6 +187,8 @@ int enumeration_start_master(net_devices_list_t* devices)
 			if (sync_ok_count >= devices->total_anchors - 1)
 				break;
 		}
+		uart_printf("Phase 2 done: got %d/%d OK(s)\r\n",
+		            sync_ok_count, devices->total_anchors - 1);
 
 		net_state.mode = NET_MODE_IDLE;
 
@@ -265,7 +262,12 @@ static void handle_discover(net_devices_list_t* devices, net_message_t* msg)
 	default:                 return;
 	}
 
-	net_send_broadcast(response, 1);
+	/* Unicast back to master so other anchors don't receive this and
+	 * don't waste their ring buffer or abort their own RX. */
+	if (msg->src_is_eui64)
+		net_send_to_64bit(&msg->src_eui64, response, 1);
+	else
+		net_send_to_16bit(msg->src_addr16, response, 1);
 }
 
 static void handle_sync_list(net_devices_list_t* devices, net_message_t* msg)
@@ -282,13 +284,15 @@ static void handle_sync_list(net_devices_list_t* devices, net_message_t* msg)
 		goto send_err;
 
 	/* Store own seq_id (master included this device in the list) */
-	net_addr16_t own = net_get_src_addr16();
-	uint8_t own_mac[MAC_ADDR_LEN] = {own & 0xFF, (own >> 8) & 0xFF, 0, 0, 0, 0};
-	net_device_t* self = net_device_find_by_mac(&remote, own_mac);
-	if (self)
-		own_seq_id = self->seq_id;
+	{
+		net_addr16_t own = net_get_src_addr16();
+		uint8_t own_mac[MAC_ADDR_LEN] = {own & 0xFF, (own >> 8) & 0xFF, 0, 0, 0, 0};
+		net_device_t* self = net_device_find_by_mac(&remote, own_mac);
+		if (self)
+			own_seq_id = self->seq_id;
+	}
 
-	/* Verify local discoveries are consistent with master's authoritative list */
+	/* Verify this device appears in master's authoritative list */
 	if (verify_device_list(devices, &remote) != 0)
 		goto send_err;
 
@@ -299,9 +303,8 @@ static void handle_sync_list(net_devices_list_t* devices, net_message_t* msg)
 	devices->initialized   = 1;
 	remote.head            = NULL; /* prevent double-free */
 
-	/* Staggered response to avoid collisions */
+	/* Random backoff to spread out simultaneous responses from multiple anchors */
 	sleep_ms(common_rand() % (SYNC_WAIT_MS / 2));
-	dwt_forcetrxoff();
 	if (msg->src_is_eui64)
 		net_send_to_64bit(&msg->src_eui64,
 		                  (const uint8_t*)cmd_str(CMD_OK), cmd_size(CMD_OK));
@@ -318,7 +321,6 @@ send_err:
 	net_state.mode = NET_MODE_IDLE;
 
 	sleep_ms(common_rand() % (SYNC_WAIT_MS / 2));
-	dwt_forcetrxoff();
 	if (msg->src_is_eui64)
 		net_send_to_64bit(&msg->src_eui64,
 		                  (const uint8_t*)cmd_str(CMD_ERR), cmd_size(CMD_ERR));
@@ -336,8 +338,10 @@ static void handle_ok(net_message_t* msg)
 	for (int i = 0; i < sync_ok_count; i++) {
 		if (sync_ok_senders[i] == src) return;
 	}
-	if (sync_ok_count < ENUM_MAX_DEVICES)
+	if (sync_ok_count < ENUM_MAX_DEVICES) {
 		sync_ok_senders[sync_ok_count++] = src;
+		uart_printf("OK from 0x%04X (total %d)\r\n", (unsigned)src, sync_ok_count);
+	}
 }
 
 /*==============================================================================

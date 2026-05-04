@@ -41,6 +41,7 @@ typedef struct device_config {
  */
 typedef struct {
 	uint32_t       part_id;  /**< DW1000 Part ID this record matches */
+	net_eui64_t    eui64;    /**< EUI-64 address to assign to this device instance */
 	device_config_t* dev;    /**< Pointer to the corresponding device_config_t */
 	void (*init_func)(void); /**< Initialization function for this device type */
 	void (*loop_func)(void); /**< Main loop function for this device type */
@@ -53,7 +54,7 @@ int device_register(const device_registration_t* reg);
  *============================================================================*/
 
 extern device_config_t DEVICE_MAIN_ANCHOR; /**< Predefined config for the master anchor */
-extern device_config_t DEVICE_ANCHOR;      /**< Predefined config for a regular anchor */
+extern device_config_t DEVICE_ANCHOR;      /**< Shared template for any regular anchor (EUI-64 set at runtime) */
 extern device_config_t DEVICE_TAG;         /**< Predefined config for a tag */
 
 /** @brief Pointer to the active device config for the currently running node. */

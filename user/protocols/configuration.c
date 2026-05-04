@@ -122,7 +122,6 @@ int configuration_start_master(net_devices_list_t* devices)
 			net_send_to_16bit(anchor_addr,
 					  (const uint8_t*)cmd_str(CMD_CONFIG_START),
 					  cmd_size(CMD_CONFIG_START));
-			dwt_rxenable(DWT_START_RX_IMMEDIATE);
 
 			for (int t = 0; t < CONFIG_WAIT_MS; t += CONFIG_POLL_MS) {
 				sleep_ms(CONFIG_POLL_MS);
@@ -130,7 +129,6 @@ int configuration_start_master(net_devices_list_t* devices)
 				if (net_rx_poll(&msg)) {
 					if (configuration_handle_message(devices, &msg) > 0)
 						got_measurements = 1;
-					dwt_rxenable(DWT_START_RX_IMMEDIATE);
 				}
 				if (got_measurements)
 					break;
@@ -146,7 +144,6 @@ int configuration_start_master(net_devices_list_t* devices)
 		net_send_to_16bit(anchor_addr,
 				  (const uint8_t*)cmd_str(CMD_CONFIG_STOP),
 				  cmd_size(CMD_CONFIG_STOP));
-		dwt_rxenable(DWT_START_RX_IMMEDIATE);
 
 		current = current->next;
 		sleep_ms(100);
