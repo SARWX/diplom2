@@ -4,6 +4,7 @@
 
 static void uart_vprintf(const char *fmt, va_list ap);
 
+static uint8_t uart_ready = 0;
 static uint8_t debug_enabled = 1;
 
 void uart_dbg_set(uint8_t enable)
@@ -13,7 +14,7 @@ void uart_dbg_set(uint8_t enable)
 
 void uart_dbg(const char* fmt, ...)
 {
-	if (!debug_enabled)
+	if (!uart_ready || !debug_enabled)
 		return;
 	va_list ap;
 	va_start(ap, fmt);
@@ -45,10 +46,13 @@ void uart_init(uint32_t baudrate)
 	usart.USART_Mode                = USART_Mode_Rx | USART_Mode_Tx;
 	USART_Init(USART1, &usart);
 	USART_Cmd(USART1, ENABLE);
+	uart_ready = 1;
 }
 
 void uart_putchar(uint8_t c)
 {
+	if (!uart_ready)
+		return;
 	while ((USART1->SR & USART_SR_TXE) == 0)
 		;
 	USART1->DR = c;

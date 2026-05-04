@@ -4,6 +4,7 @@
 #include "net_dispatch.h"
 #include "enumeration.h"
 #include "configuration.h"
+#include "meas_table.h"
 #include "ss_twr.h"
 #include "uart.h"
 #include "cmd_parser.h"
@@ -17,20 +18,13 @@ static net_devices_list_t devices;
  * Command Handlers
  *============================================================================*/
 
-static void print_distance_table(void)
+static void send_table_uart(void)
 {
-	uart_dbg("\r\n=== Distance Table ===\r\n");
-	net_device_t* dev = devices.head;
-	while (dev) {
-		for (int j = 1; j <= devices.total_anchors; j++) {
-			if (j == dev->seq_id) continue;
-			if (dev->distances[j] == DISTANCE_INVALID) continue;
-			uart_dbg("  %d -> %d : %.3f m\r\n",
-			         dev->seq_id, j, dev->distances[j]);
-		}
-		dev = dev->next;
-	}
-	uart_dbg("======================\r\n");
+	uint8_t buf[MEAS_TABLE_HDR_SIZE + MEAS_TABLE_ROW_SIZE * MAX_DISTANCES * MAX_ANCHORS];
+	uint16_t len;
+	meas_table_serialize(&devices, buf, &len);
+	for (uint16_t i = 0; i < len; i++)
+		uart_putchar(buf[i]);
 }
 
 static void run_own_measurements(void)
@@ -55,7 +49,8 @@ static void handle_initialize(void)
 
 	run_own_measurements();
 	uart_puts("System initialized successfully\r\n");
-	print_distance_table();
+	meas_table_print(&devices);
+	send_table_uart();
 }
 
 static void handle_reconfigure(void)
@@ -74,7 +69,8 @@ static void handle_reconfigure(void)
 
 	run_own_measurements();
 	uart_puts("Reconfiguration complete\r\n");
-	print_distance_table();
+	meas_table_print(&devices);
+	send_table_uart();
 }
 
 static void handle_reset(void)

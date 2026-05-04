@@ -1,4 +1,6 @@
 #include "configuration.h"
+#include "meas_table.h"
+#include "enumeration.h"
 #include "net_mac.h"
 #include "cmd_parser.h"
 #include "uart.h"
@@ -11,84 +13,27 @@
 #define CONFIG_WAIT_MS    2000
 #define CONFIG_POLL_MS    20
 
-/**
- * @brief Wire-format record for a single inter-anchor distance measurement.
- *
- * Serialized as: from_seq_id (1 byte) | to_seq_id (1 byte) | distance (4 bytes, float LE).
- */
-typedef struct {
-	uint8_t from_seq_id; /**< seq_id of the anchor that performed the measurement */
-	uint8_t to_seq_id;   /**< seq_id of the target anchor */
-	float   distance;    /**< Measured distance in metres */
-} measurement_t;
-
 /* Returns the 16-bit network address stored in a device's mac_address field. */
 static net_addr16_t device_addr(const net_device_t* dev)
 {
 	return dev->mac_address[0] | ((net_addr16_t)dev->mac_address[1] << 8);
 }
 
-static void serialize_measurement(const measurement_t* m, uint8_t* buffer, uint16_t* len)
-{
-	buffer[0] = m->from_seq_id;
-	buffer[1] = m->to_seq_id;
-	memcpy(buffer + 2, &m->distance, sizeof(float));
-	*len = 2 + sizeof(float);
-}
-
-static int deserialize_measurement(const uint8_t* buffer, uint16_t len, measurement_t* m)
-{
-	if (len < 2 + sizeof(float))
-		return -1;
-	m->from_seq_id = buffer[0];
-	m->to_seq_id = buffer[1];
-	memcpy(&m->distance, buffer + 2, sizeof(float));
-	return 0;
-}
-
 void configuration_send_measurements(net_devices_list_t* devices, net_addr16_t dst_addr)
 {
-	uint8_t buffer[128];
-	uint16_t offset = 0;
-	net_device_t* current = devices->head;
-
-	while (current && offset < 120) {
-		for (int i = 1; i <= devices->total_anchors; i++) {
-			if (current->distances[i] != DISTANCE_INVALID) {
-				measurement_t m;
-				m.from_seq_id = current->seq_id;
-				m.to_seq_id = i;
-				m.distance = current->distances[i];
-
-				uint16_t m_len;
-				serialize_measurement(&m, buffer + offset, &m_len);
-				offset += m_len;
-			}
-		}
-		current = current->next;
-	}
-
-	if (offset > 0)
-		net_send_to_16bit(dst_addr, buffer, offset);
+	uint8_t buf[MEAS_TABLE_HDR_SIZE + MEAS_TABLE_ROW_SIZE * MAX_DISTANCES];
+	uint16_t len;
+	net_device_t* self = net_device_find_by_seq(devices, enumeration_get_own_seq_id());
+	if (!self) return;
+	meas_table_serialize_row(self, buf, &len);
+	net_send_to_16bit(dst_addr, buf, len);
 }
 
 static int handle_measurements(net_devices_list_t* devices, const uint8_t* data, uint16_t len)
 {
-	uint16_t offset = 0;
-	int count = 0;
-
-	while (offset + 2 + sizeof(float) <= len) {
-		measurement_t m;
-		if (deserialize_measurement(data + offset, len - offset, &m) != 0)
-			break;
-		net_device_t* from = net_device_find_by_seq(devices, m.from_seq_id);
-		if (from)
-			net_device_update_distance(from, m.to_seq_id, m.distance);
-		offset += 2 + sizeof(float);
-		count++;
-	}
-
-	return count;
+	if (meas_table_deserialize(devices, data, len) != 0)
+		return 0;
+	return 1;
 }
 
 /*==============================================================================
