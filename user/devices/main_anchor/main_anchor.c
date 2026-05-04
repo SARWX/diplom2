@@ -5,6 +5,7 @@
 #include "enumeration.h"
 #include "configuration.h"
 #include "meas_table.h"
+#include "ranging.h"
 #include "ss_twr.h"
 #include "uart.h"
 #include "cmd_parser.h"
@@ -99,6 +100,17 @@ static void handle_test_ss_twr(void)
 		uart_puts("TIMEOUT/ERR\r\n");
 }
 
+static void handle_ranging_start(void)
+{
+	uart_puts("\r\n>>> RANGING_START\r\n");
+	if (!devices.initialized) {
+		uart_puts("ERROR: Run INITIALIZE first\r\n");
+		return;
+	}
+	net_send_broadcast((const uint8_t*)cmd_str(CMD_RANGING_START),
+	                   cmd_size(CMD_RANGING_START));
+}
+
 static void handle_debug(uint8_t enable)
 {
 	uart_dbg_set(enable);
@@ -119,7 +131,13 @@ static void process_command(cmd_parse_result_t cmd)
 	case CMD_GET_STATUS:   handle_get_status();  break;
 	case CMD_DEBUG_ON:     handle_debug(1);      break;
 	case CMD_DEBUG_OFF:    handle_debug(0);      break;
-	case CMD_TEST_SS_TWR:  handle_test_ss_twr(); break;
+	case CMD_TEST_SS_TWR:    handle_test_ss_twr();    break;
+	case CMD_RANGING_START:  handle_ranging_start();  break;
+	case CMD_RANGING_STOP:
+	case CMD_STOP:
+		net_send_broadcast((const uint8_t*)cmd_str(CMD_RANGING_STOP),
+		                   cmd_size(CMD_RANGING_STOP));
+		break;
 	default:
 		uart_puts("Command not implemented\r\n");
 		break;
@@ -139,18 +157,27 @@ void main_anchor_init(void)
 	uart_puts("\r\n========================================\r\n");
 	uart_puts("Main Anchor Station\r\n");
 	uart_puts("========================================\r\n");
-	uart_puts("Commands: INITIALIZE, RECONFIGURE, RESET, GET_STATUS, DEBUG_ON/OFF, TEST_SS_TWR\r\n");
+	uart_puts("Commands: INITIALIZE, RECONFIGURE, RESET, GET_STATUS, DEBUG_ON/OFF, TEST_SS_TWR, RANGING_START, STOP\r\n");
 	uart_puts("> ");
+}
+
+static void main_anchor_idle(net_devices_list_t* devs, net_message_t* msg)
+{
+	ranging_handle_rx(devs, msg);
+}
+
+static void poll_network(void)
+{
+	net_process(&devices, main_anchor_idle);
 }
 
 void main_anchor_loop(void)
 {
-	/* Drain any pending RX frames (enumeration/config/TWR handled automatically) */
-	net_process(&devices, NULL);
-
-	/* Block until the user sends a command over UART */
+	/* Block until the user sends a command over UART,
+	 * polling the network on every iteration so ranging packets
+	 * are not dropped while waiting for input. */
 	static char line_buf[128];
-	uart_readline(line_buf, sizeof(line_buf));
+	uart_readline_idle(line_buf, sizeof(line_buf), poll_network);
 	process_command(cmd_parse(line_buf));
 	uart_puts("\r\n> ");
 }
