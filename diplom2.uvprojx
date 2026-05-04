@@ -690,6 +690,26 @@
               <FileType>5</FileType>
               <FilePath>.\user\protocols\configuration.h</FilePath>
             </File>
+            <File>
+              <FileName>meas_table.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\user\protocols\meas_table.c</FilePath>
+            </File>
+            <File>
+              <FileName>meas_table.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\user\protocols\meas_table.h</FilePath>
+            </File>
+            <File>
+              <FileName>ranging.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\user\protocols\ranging.c</FilePath>
+            </File>
+            <File>
+              <FileName>ranging.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\user\protocols\ranging.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
