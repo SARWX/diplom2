@@ -1,6 +1,7 @@
 #include "cmd_parser.h"
 #include <string.h>
-#include <ctype.h>
+
+#define TO_UPPER(c) (((c) >= 'a' && (c) <= 'z') ? (c) - 32 : (c))
 
 /*==============================================================================
  * Command Table
@@ -68,7 +69,7 @@ static void str_to_upper(char* dest, const char* src, size_t max_len)
 {
 	size_t i = 0;
 	while (src[i] && i < max_len - 1) {
-		dest[i] = toupper((unsigned char)src[i]);
+		dest[i] = TO_UPPER(src[i]);
 		i++;
 	}
 	dest[i] = '\0';

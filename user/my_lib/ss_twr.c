@@ -5,6 +5,8 @@
 
 #define UUS_TO_DWT_TIME 65536
 #define SPEED_OF_LIGHT 299702547
+/* DWT_TIME_UNITS as float to avoid pulling in double-precision library */
+#define DWT_TIME_UNITS_F 1.5650040064103e-11f
 #define TX_ANT_DLY 16436
 #define RX_ANT_DLY 16436
 /* At 6.8 Mbps, RMARKER→RXFCG ≈ 300 µs for a 12-byte frame.
@@ -52,8 +54,8 @@ static float twr_calc_distance(uint32 poll_tx_ts, uint32 resp_rx_ts,
 {
 	int32 rtd_init = resp_rx_ts - poll_tx_ts;
 	int32 rtd_resp = resp_tx_ts - poll_rx_ts;
-	double tof = ((rtd_init - rtd_resp) / 2.0) * DWT_TIME_UNITS;
-	return (float)(tof * SPEED_OF_LIGHT);
+	float tof = ((float)(rtd_init - rtd_resp) * 0.5f) * DWT_TIME_UNITS_F;
+	return tof * (float)SPEED_OF_LIGHT;
 }
 
 int ss_twr_measure_distance(net_addr16_t dst_addr, float* distance)
