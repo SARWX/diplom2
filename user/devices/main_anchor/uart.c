@@ -132,14 +132,14 @@ static void uart_vprintf(const char *fmt, va_list ap)
 			put_uint(va_arg(ap, uint32_t), 16, 1, width, zpad);
 			break;
 		case 'f': {
-			double v = va_arg(ap, double);
+			float v = (float)va_arg(ap, double);
 			if (v < 0) { uart_putchar('-'); v = -v; }
 			uint32_t int_part = (uint32_t)v;
 			put_uint(int_part, 10, 0, width, zpad);
 			if (precision > 0) {
 				uart_putchar('.');
-				double frac = v - int_part;
-				for (uint8_t p = 0; p < precision; p++) frac *= 10.0;
+				float frac = v - (float)int_part;
+				for (uint8_t p = 0; p < precision; p++) frac *= 10.0f;
 				put_uint((uint32_t)frac, 10, 0, precision, 1);
 			}
 			break;
@@ -168,9 +168,19 @@ void uart_printf(const char *fmt, ...)
 
 void uart_readline(char *buffer, uint16_t max_len)
 {
+	uart_readline_idle(buffer, max_len, (void*)0);
+}
+
+void uart_readline_idle(char *buffer, uint16_t max_len, void (*idle_fn)(void))
+{
 	uint16_t pos = 0;
 
 	while (1) {
+		if (idle_fn && !(USART1->SR & USART_SR_RXNE)) {
+			idle_fn();
+			continue;
+		}
+
 		while ((USART1->SR & USART_SR_RXNE) == 0)
 			;
 
