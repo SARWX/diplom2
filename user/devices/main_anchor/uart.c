@@ -2,6 +2,25 @@
 #include "stm32f10x.h"
 #include <stdarg.h>
 
+static void uart_vprintf(const char *fmt, va_list ap);
+
+static uint8_t debug_enabled = 1;
+
+void uart_dbg_set(uint8_t enable)
+{
+	debug_enabled = enable;
+}
+
+void uart_dbg(const char* fmt, ...)
+{
+	if (!debug_enabled)
+		return;
+	va_list ap;
+	va_start(ap, fmt);
+	uart_vprintf(fmt, ap);
+	va_end(ap);
+}
+
 void uart_init(uint32_t baudrate)
 {
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1 | RCC_APB2Periph_GPIOA, ENABLE);
@@ -63,10 +82,8 @@ static void put_uint(uint32_t n, uint8_t base, uint8_t upper,
 		uart_putchar(buf[i]);
 }
 
-void uart_printf(const char *fmt, ...)
+static void uart_vprintf(const char *fmt, va_list ap)
 {
-	va_list ap;
-	va_start(ap, fmt);
 
 	for (; *fmt; fmt++) {
 		if (*fmt != '%') {
@@ -135,6 +152,13 @@ void uart_printf(const char *fmt, ...)
 		}
 	}
 
+}
+
+void uart_printf(const char *fmt, ...)
+{
+	va_list ap;
+	va_start(ap, fmt);
+	uart_vprintf(fmt, ap);
 	va_end(ap);
 }
 

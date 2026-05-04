@@ -102,7 +102,7 @@ int configuration_start_master(net_devices_list_t* devices)
 		return -1;
 	}
 
-	uart_puts("\r\n=== Starting CONFIGURATION ===\r\n");
+	uart_dbg("\r\n=== Starting CONFIGURATION ===\r\n");
 	net_state.mode = NET_MODE_CONFIG;
 
 	net_device_t* current = devices->head;
@@ -114,8 +114,8 @@ int configuration_start_master(net_devices_list_t* devices)
 		}
 
 		net_addr16_t anchor_addr = device_addr(current);
-		uart_printf("Configuring device seq_id=%d addr=0x%04X\r\n",
-			    current->seq_id, anchor_addr);
+		uart_dbg("Configuring device seq_id=%d addr=0x%04X\r\n",
+			 current->seq_id, anchor_addr);
 
 		int got_measurements = 0;
 		for (int retry = 0; retry < CONFIG_RETRY_MAX; retry++) {
@@ -128,8 +128,8 @@ int configuration_start_master(net_devices_list_t* devices)
 				net_message_t msg;
 				if (net_rx_poll(&msg)) {
 					int r = configuration_handle_message(devices, &msg);
-					uart_printf("Config rx: src=0x%04X r=%d len=%d\r\n",
-					            (unsigned)msg.src_addr16, r, msg.payload_len);
+					uart_dbg("Config rx: src=0x%04X r=%d len=%d\r\n",
+					         (unsigned)msg.src_addr16, r, msg.payload_len);
 					if (r > 0)
 						got_measurements = 1;
 				}
@@ -140,8 +140,8 @@ int configuration_start_master(net_devices_list_t* devices)
 			if (got_measurements)
 				break;
 
-			uart_printf("Retry %d/%d for seq_id=%d\r\n",
-				    retry + 1, CONFIG_RETRY_MAX, current->seq_id);
+			uart_dbg("Retry %d/%d for seq_id=%d\r\n",
+				 retry + 1, CONFIG_RETRY_MAX, current->seq_id);
 		}
 
 		net_send_to_16bit(anchor_addr,
@@ -153,7 +153,7 @@ int configuration_start_master(net_devices_list_t* devices)
 	}
 	net_state.mode = NET_MODE_IDLE;
 
-	uart_puts("Configuration completed\r\n");
+	uart_dbg("Configuration completed\r\n");
 	return 0;
 }
 

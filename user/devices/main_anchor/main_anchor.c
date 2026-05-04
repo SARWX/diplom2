@@ -12,8 +12,6 @@
 
 /** @brief List of network devices discovered during enumeration. */
 static net_devices_list_t devices;
-/** @brief Non-zero when verbose debug output is enabled via CMD_DEBUG_ON. */
-static uint8_t debug_enabled = 0;
 
 /*==============================================================================
  * Command Handlers
@@ -21,23 +19,23 @@ static uint8_t debug_enabled = 0;
 
 static void print_distance_table(void)
 {
-	uart_puts("\r\n=== Distance Table ===\r\n");
+	uart_dbg("\r\n=== Distance Table ===\r\n");
 	net_device_t* dev = devices.head;
 	while (dev) {
 		for (int j = 1; j <= devices.total_anchors; j++) {
 			if (j == dev->seq_id) continue;
 			if (dev->distances[j] == DISTANCE_INVALID) continue;
-			uart_printf("  %d -> %d : %.3f m\r\n",
-			            dev->seq_id, j, dev->distances[j]);
+			uart_dbg("  %d -> %d : %.3f m\r\n",
+			         dev->seq_id, j, dev->distances[j]);
 		}
 		dev = dev->next;
 	}
-	uart_puts("======================\r\n");
+	uart_dbg("======================\r\n");
 }
 
 static void run_own_measurements(void)
 {
-	uart_puts("Master measuring distances...\r\n");
+	uart_dbg("Master measuring distances...\r\n");
 	configuration_perform_measurements(&devices, enumeration_get_own_seq_id());
 }
 
@@ -90,9 +88,8 @@ static void handle_reset(void)
 static void handle_get_status(void)
 {
 	uart_puts("\r\n>>> GET_STATUS\r\n");
-	uart_printf("Initialized: %s\r\n", devices.initialized ? "YES" : "NO");
-	uart_printf("Total devices: %d\r\n", devices.total_anchors);
-	uart_printf("Debug mode: %s\r\n", debug_enabled ? "ON" : "OFF");
+	uart_dbg("Initialized: %s\r\n", devices.initialized ? "YES" : "NO");
+	uart_dbg("Total devices: %d\r\n", devices.total_anchors);
 	net_devices_print(&devices);
 }
 
@@ -101,15 +98,14 @@ static void handle_test_ss_twr(void)
 	uart_puts("\r\n>>> TEST_SS_TWR\r\n");
 	float dist;
 	if (ss_twr_measure_distance(2, &dist) == 0)
-		uart_printf("dist=%.2f m\r\n", dist);
+		uart_dbg("dist=%.2f m\r\n", dist);
 	else
 		uart_puts("TIMEOUT/ERR\r\n");
 }
 
 static void handle_debug(uint8_t enable)
 {
-	debug_enabled = enable;
-	net_devices_set_debug(enable);
+	uart_dbg_set(enable);
 	uart_printf("Debug mode %s\r\n", enable ? "enabled" : "disabled");
 }
 
@@ -129,7 +125,7 @@ static void process_command(cmd_parse_result_t cmd)
 	case CMD_DEBUG_OFF:    handle_debug(0);      break;
 	case CMD_TEST_SS_TWR:  handle_test_ss_twr(); break;
 	default:
-		uart_printf("Command not implemented: %s\r\n", cmd_str(cmd.code));
+		uart_puts("Command not implemented\r\n");
 		break;
 	}
 }

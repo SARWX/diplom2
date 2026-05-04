@@ -137,7 +137,7 @@ int enumeration_start_master(net_devices_list_t* devices)
 	enumeration_complete = 0;
 
 	for (retry_count = 0; retry_count < ENUM_RETRY_MAX; retry_count++) {
-		uart_printf("Enumeration attempt %d/%d\r\n", retry_count + 1, ENUM_RETRY_MAX);
+		uart_dbg("Enumeration attempt %d/%d\r\n", retry_count + 1, ENUM_RETRY_MAX);
 
 		net_devices_clear(devices);
 
@@ -166,11 +166,11 @@ int enumeration_start_master(net_devices_list_t* devices)
 		}
 
 		if (devices->total_anchors <= 1) {
-			uart_puts("No devices found, retrying...\r\n");
+			uart_dbg("No devices found, retrying...\r\n");
 			continue;
 		}
 
-		uart_printf("Phase 1 done: found %d device(s)\r\n", devices->total_anchors);
+		uart_dbg("Phase 1 done: found %d device(s)\r\n", devices->total_anchors);
 
 		/* Phase 2: broadcast SYNC_LIST, poll for OK responses */
 		net_state.mode = NET_MODE_SYNC_WAIT;
@@ -179,7 +179,7 @@ int enumeration_start_master(net_devices_list_t* devices)
 
 		send_sync_list(devices, NET_BROADCAST_ADDR);
 
-		uart_printf("Phase 2: waiting %d OK(s)...\r\n", devices->total_anchors - 1);
+		uart_dbg("Phase 2: waiting %d OK(s)...\r\n", devices->total_anchors - 1);
 
 		for (uint32_t t = 0; t < SYNC_WAIT_MS; t += ENUM_POLL_MS) {
 			sleep_ms(ENUM_POLL_MS);
@@ -187,24 +187,24 @@ int enumeration_start_master(net_devices_list_t* devices)
 			if (sync_ok_count >= devices->total_anchors - 1)
 				break;
 		}
-		uart_printf("Phase 2 done: got %d/%d OK(s)\r\n",
-		            sync_ok_count, devices->total_anchors - 1);
+		uart_dbg("Phase 2 done: got %d/%d OK(s)\r\n",
+		         sync_ok_count, devices->total_anchors - 1);
 
 		net_state.mode = NET_MODE_IDLE;
 
 		if (sync_ok_count >= devices->total_anchors - 1) {
 			enumeration_complete = 1;
 			devices->initialized = 1;
-			uart_puts("Enumeration complete\r\n");
+			uart_dbg("Enumeration complete\r\n");
 			net_devices_print(devices);
 			return 0;
 		}
 
-		uart_printf("Only %d/%d confirmed, retrying...\r\n",
-		            sync_ok_count, devices->total_anchors - 1);
+		uart_dbg("Only %d/%d confirmed, retrying...\r\n",
+		         sync_ok_count, devices->total_anchors - 1);
 	}
 
-	uart_puts("Enumeration failed\r\n");
+	uart_dbg("Enumeration failed\r\n");
 	return -1;
 }
 
@@ -340,7 +340,7 @@ static void handle_ok(net_message_t* msg)
 	}
 	if (sync_ok_count < ENUM_MAX_DEVICES) {
 		sync_ok_senders[sync_ok_count++] = src;
-		uart_printf("OK from 0x%04X (total %d)\r\n", (unsigned)src, sync_ok_count);
+		uart_dbg("OK from 0x%04X (total %d)\r\n", (unsigned)src, sync_ok_count);
 	}
 }
 

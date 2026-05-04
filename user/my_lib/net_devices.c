@@ -2,16 +2,9 @@
 #include "uart.h"
 #include <string.h>
 
-static uint8_t debug_enabled = 0;
-
 static net_device_t device_pool[MAX_ANCHORS];
 static float        dist_pool[MAX_ANCHORS][MAX_DISTANCES];
 static uint8_t      device_used[MAX_ANCHORS];
-
-void net_devices_set_debug(uint8_t enable)
-{
-	debug_enabled = enable;
-}
 
 void net_devices_init(net_devices_list_t* list)
 {
@@ -54,9 +47,8 @@ net_device_t* net_device_create(const uint8_t* mac, device_type_t device_type)
 	for (int i = 0; i < MAX_DISTANCES; i++)
 		device->distances[i] = DISTANCE_INVALID;
 
-	if (debug_enabled)
-		uart_printf("Created device: MAC=%02X:%02X:%02X:%02X:%02X:%02X\r\n",
-			    mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+	uart_dbg("Created device: MAC=%02X:%02X:%02X:%02X:%02X:%02X\r\n",
+		 mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
 	return device;
 }
@@ -77,9 +69,8 @@ int net_device_add(net_devices_list_t* list, net_device_t* device)
 	list->head = device;
 	list->total_anchors++;
 
-	if (debug_enabled)
-		uart_printf("Added device seq_id=%d, total=%d\r\n",
-			    device->seq_id, list->total_anchors);
+	uart_dbg("Added device seq_id=%d, total=%d\r\n",
+		 device->seq_id, list->total_anchors);
 
 	return device->seq_id;
 }
@@ -172,17 +163,17 @@ void net_devices_print(net_devices_list_t* list)
 {
 	if (!list) return;
 
-	uart_printf("=== Device List (Total: %d) ===\r\n", list->total_anchors);
+	uart_dbg("=== Device List (Total: %d) ===\r\n", list->total_anchors);
 	net_device_t* current = list->head;
 	while (current) {
-		uart_printf("  Seq ID: %d, MAC: %02X:%02X:%02X:%02X:%02X:%02X\r\n",
-			    current->seq_id,
-			    current->mac_address[0], current->mac_address[1],
-			    current->mac_address[2], current->mac_address[3],
-			    current->mac_address[4], current->mac_address[5]);
+		uart_dbg("  Seq ID: %d, MAC: %02X:%02X:%02X:%02X:%02X:%02X\r\n",
+			 current->seq_id,
+			 current->mac_address[0], current->mac_address[1],
+			 current->mac_address[2], current->mac_address[3],
+			 current->mac_address[4], current->mac_address[5]);
 		current = current->next;
 	}
-	uart_puts("==============================\r\n");
+	uart_dbg("==============================\r\n");
 }
 
 void net_device_update_distance(net_device_t* device, uint8_t to_seq_id, float distance)
