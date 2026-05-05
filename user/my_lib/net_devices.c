@@ -181,3 +181,30 @@ void net_device_update_distance(net_device_t* device, uint8_t to_seq_id, float d
 	if (!device || to_seq_id >= MAX_DISTANCES) return;
 	device->distances[to_seq_id] = distance;
 }
+
+void net_devices_serialize(const net_devices_list_t* list,
+                            uint8_t* buf, uint16_t* len)
+{
+	if (!list || !buf || !len) return;
+
+	buf[0] = DEV_LIST_MAGIC_0;
+	buf[1] = DEV_LIST_MAGIC_1;
+	buf[2] = DEV_LIST_VERSION;
+	buf[3] = 0; /* device_count filled below */
+
+	uint16_t offset = DEV_LIST_HDR_SIZE;
+	uint8_t count = 0;
+
+	const net_device_t* dev = list->head;
+	while (dev) {
+		buf[offset++] = dev->seq_id;
+		buf[offset++] = (uint8_t)dev->device_type;
+		for (int i = 0; i < MAC_ADDR_LEN; i++)
+			buf[offset++] = dev->mac_address[i];
+		count++;
+		dev = dev->next;
+	}
+
+	buf[3] = count;
+	*len = offset;
+}

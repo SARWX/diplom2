@@ -51,5 +51,41 @@ void net_devices_print(net_devices_list_t* list);
 /* Distance tracking */
 void net_device_update_distance(net_device_t* device, uint8_t to_seq_id, float distance);
 
+/*==============================================================================
+ * Device List Serialization
+ *
+ * Binary format (little-endian):
+ *
+ *   Offset        Size  Field
+ *   ----------    ----  -------------------------------------------
+ *   0             1     magic[0] = 0xAA
+ *   1             1     magic[1] = 0xCC
+ *   2             1     version  = 1
+ *   3             1     device_count
+ *   4 + 8*i       1     seq_id
+ *   5 + 8*i       1     device_type  (device_type_t, see below)
+ *   6 + 8*i       6     mac_address (6 bytes, big-endian order)
+ *
+ *   Total: 4 + device_count * 8 bytes.
+ *
+ *   device_type values: 0=NONE 1=MAIN_ANCHOR 2=ANCHOR 3=TAG
+ *============================================================================*/
+
+#define DEV_LIST_MAGIC_0   0xAAu
+#define DEV_LIST_MAGIC_1   0xCCu
+#define DEV_LIST_VERSION   1u
+#define DEV_LIST_HDR_SIZE  4u
+#define DEV_LIST_ROW_SIZE  8u   /* seq_id(1) + device_type(1) + mac(6) */
+
+/**
+ * @brief Serialize the device list into @p buf.
+ *
+ * @param list  Source device list.
+ * @param buf   Output buffer. Must be at least
+ *              DEV_LIST_HDR_SIZE + DEV_LIST_ROW_SIZE * list->total_anchors bytes.
+ * @param len   Set to the number of bytes written.
+ */
+void net_devices_serialize(const net_devices_list_t* list,
+                            uint8_t* buf, uint16_t* len);
 
 #endif /* NET_DEVICES_H */

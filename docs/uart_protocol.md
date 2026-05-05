@@ -49,6 +49,7 @@ inter-anchor distance measurement (configuration).
 **Response on success:**
 
 ```
+<binary device_list>
 <binary meas_table>
 OK\r\n
 ```
@@ -59,7 +60,16 @@ OK\r\n
 ERR\r\n
 ```
 
-See [meas_table_format.md](meas_table_format.md) for the binary payload layout.
+The device list packet (magic `0xAA 0xCC`) describes every discovered node:
+its sequential ID, type (main_anchor / anchor / tag), and MAC address.
+See [device_list_format.md](device_list_format.md) for the full layout.
+
+The measurement table packet (magic `0xAA 0xBB`) contains the inter-anchor
+distances measured during configuration.
+See [meas_table_format.md](meas_table_format.md) for the full layout.
+
+The host can distinguish the two packets by their second magic byte
+(`0xCC` = device list, `0xBB` = measurement table).
 
 ---
 
@@ -71,6 +81,7 @@ enumeration. Requires a prior successful `INITIALIZE`.
 **Response on success:**
 
 ```
+<binary device_list>
 <binary meas_table>
 OK\r\n
 ```
@@ -165,6 +176,7 @@ at which point the device replies `OK\r\n`.
 Host                      Device
  |                            |
  |--- INITIALIZE\r\n -------->|
+ |<-- <binary device_list> ---|
  |<-- <binary meas_table> ----|
  |<-- OK\r\n -----------------|
  |                            |

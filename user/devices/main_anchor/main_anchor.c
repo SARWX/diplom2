@@ -12,6 +12,8 @@
 #include "deca_device_api.h"
 #include <string.h>
 
+#define DEV_LIST_BUF_SIZE (DEV_LIST_HDR_SIZE + DEV_LIST_ROW_SIZE * MAX_ANCHORS)
+
 /** @brief List of network devices discovered during enumeration. */
 static net_devices_list_t devices;
 
@@ -26,6 +28,15 @@ static net_devices_list_t devices;
 static void reply_ok(void)  { uart_puts(REPLY_OK); }
 static void reply_err(void) { uart_puts(REPLY_ERR); }
 static void reply_unk(void) { uart_puts(REPLY_UNK); }
+
+static void send_device_list_uart(void)
+{
+	uint8_t buf[DEV_LIST_BUF_SIZE];
+	uint16_t len;
+	net_devices_serialize(&devices, buf, &len);
+	for (uint16_t i = 0; i < len; i++)
+		uart_putchar(buf[i]);
+}
 
 static void send_table_uart(void)
 {
@@ -65,6 +76,7 @@ static void handle_initialize(void)
 	configuration_perform_measurements(&devices, enumeration_get_own_seq_id());
 
 	meas_table_print(&devices);
+	send_device_list_uart();
 	send_table_uart();
 	reply_ok();
 }
@@ -89,6 +101,7 @@ static void handle_reconfigure(void)
 	configuration_perform_measurements(&devices, enumeration_get_own_seq_id());
 
 	meas_table_print(&devices);
+	send_device_list_uart();
 	send_table_uart();
 	reply_ok();
 }
