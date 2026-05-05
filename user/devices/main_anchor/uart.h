@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#define DEFAULT_DEBUG_VAL 0
+
 void uart_init(uint32_t baudrate);
 void uart_putchar(uint8_t c);
 void uart_puts(const char* str);

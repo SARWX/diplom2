@@ -5,7 +5,7 @@
 static void uart_vprintf(const char *fmt, va_list ap);
 
 static uint8_t uart_ready = 0;
-static uint8_t debug_enabled = 1;
+static uint8_t debug_enabled = DEFAULT_DEBUG_VAL;
 
 void uart_dbg_set(uint8_t enable)
 {
