@@ -31,6 +31,7 @@ typedef enum {
 	CMD_OK,             /**< Positive acknowledgement */
 	CMD_ERR,            /**< Negative acknowledgement / error */
 	CMD_TEST_SS_TWR,    /**< UART: run SS-TWR test to all devices and print distances */
+	CMD_PING,           /**< Handshake: host sends LOC_POS_SYS, device replies LPS */
 	CMD_COUNT           /**< Sentinel — must remain last */
 } cmd_code_t;
 
