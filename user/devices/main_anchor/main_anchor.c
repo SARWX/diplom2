@@ -31,7 +31,7 @@ static void reply_unk(void) { uart_puts(REPLY_UNK); }
 
 static void send_device_list_uart(void)
 {
-	uint8_t buf[DEV_LIST_BUF_SIZE];
+	static uint8_t buf[DEV_LIST_BUF_SIZE];
 	uint16_t len;
 	net_devices_serialize(&devices, buf, &len);
 	for (uint16_t i = 0; i < len; i++)
@@ -40,7 +40,7 @@ static void send_device_list_uart(void)
 
 static void send_table_uart(void)
 {
-	uint8_t buf[MEAS_TABLE_HDR_SIZE + MEAS_TABLE_ROW_SIZE * MAX_DISTANCES * MAX_ANCHORS];
+	static uint8_t buf[MEAS_TABLE_HDR_SIZE + MEAS_TABLE_ROW_SIZE * MAX_DISTANCES * MAX_ANCHORS];
 	uint16_t len;
 	meas_table_serialize(&devices, buf, &len);
 	for (uint16_t i = 0; i < len; i++)

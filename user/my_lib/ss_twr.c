@@ -2,6 +2,14 @@
 #include "ss_twr.h"
 #include "deca_device_api.h"
 #include "deca_regs.h"
+#include "port.h"
+
+/* Iteration-count watchdog for TXFRS inside ISR (no SysTick there).
+ * DW1000 at 6.8 Mbps finishes a 20-byte frame in ~300 µs.
+ * At 72 MHz with ~4 cycles/iter this gives ~60 000 iters budget;
+ * 200 000 is a safe 10× margin before we declare a TX failure. */
+#define ISR_TX_TIMEOUT_ITERS 200000u
+#define MAIN_TX_TIMEOUT_MS   10u
 
 #define UUS_TO_DWT_TIME 65536
 #define SPEED_OF_LIGHT 299702547
@@ -153,8 +161,16 @@ int ss_twr_handle_rx_frame(const net_message_t* msg)
 		if (dwt_starttx(DWT_START_TX_DELAYED) != DWT_SUCCESS)
 			return 0;
 
-		while (!(dwt_read32bitreg(SYS_STATUS_ID) & SYS_STATUS_TXFRS))
-			;
+		{
+			unsigned long deadline = portGetTickCount() + MAIN_TX_TIMEOUT_MS;
+			while (!(dwt_read32bitreg(SYS_STATUS_ID) & SYS_STATUS_TXFRS)) {
+				if ((signed long)(portGetTickCount() - deadline) > 0) {
+					dwt_forcetrxoff();
+					dwt_rxenable(DWT_START_RX_IMMEDIATE);
+					return 0;
+				}
+			}
+		}
 		dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS);
 		return 1;
 	}
@@ -200,8 +216,13 @@ void ss_twr_isr(const uint8_t *frame, uint16_t len)
 	dwt_writetxdata(20, resp_template, 0);
 	dwt_writetxfctrl(20, 0, 1);
 	if (dwt_starttx(DWT_START_TX_DELAYED) == DWT_SUCCESS) {
-		while (!(dwt_read32bitreg(SYS_STATUS_ID) & SYS_STATUS_TXFRS))
-			;
+		uint32_t iters = ISR_TX_TIMEOUT_ITERS;
+		while (!(dwt_read32bitreg(SYS_STATUS_ID) & SYS_STATUS_TXFRS)) {
+			if (--iters == 0) {
+				dwt_forcetrxoff();
+				break;
+			}
+		}
 		dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS);
 	}
 	dwt_rxenable(DWT_START_RX_IMMEDIATE);

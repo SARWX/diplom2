@@ -3,7 +3,11 @@
 #include "common.h"
 #include "deca_device_api.h"
 #include "deca_regs.h"
+#include "port.h"
 #include <string.h>
+
+/* Software watchdog for TXFRS polling — 10 ms at 115200 baud is plenty */
+#define NET_TX_TIMEOUT_MS 10u
 
 /*==============================================================================
  * Internal State
@@ -248,12 +252,19 @@ static int net_send_frame_raw(uint8_t* frame, uint16_t frame_len,
 	}
 	decamutexoff(irq_state);
 
-	while (!((status_reg = dwt_read32bitreg(SYS_STATUS_ID)) & SYS_STATUS_TXFRS)) {
-		if (status_reg & SYS_STATUS_TXERR) {
-			dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXERR);
-			if (restore_rx)
-				dwt_rxenable(DWT_START_RX_IMMEDIATE);
-			return -1;
+	{
+		unsigned long deadline = portGetTickCount() + NET_TX_TIMEOUT_MS;
+		while (!((status_reg = dwt_read32bitreg(SYS_STATUS_ID)) & SYS_STATUS_TXFRS)) {
+			if (status_reg & SYS_STATUS_TXERR) {
+				dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXERR);
+				if (restore_rx) dwt_rxenable(DWT_START_RX_IMMEDIATE);
+				return -1;
+			}
+			if ((signed long)(portGetTickCount() - deadline) > 0) {
+				dwt_forcetrxoff();
+				if (restore_rx) dwt_rxenable(DWT_START_RX_IMMEDIATE);
+				return -1;
+			}
 		}
 	}
 	dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS);
@@ -295,7 +306,7 @@ int net_send_frame_ranging(uint8_t* frame, uint16_t frame_len, uint8_t response_
 
 int net_send_broadcast(const uint8_t* payload, uint16_t payload_len)
 {
-	uint8_t frame[128];
+	static uint8_t frame[128];
 	static uint8_t seq_num = 0;
 	uint16_t len = net_build_frame(frame, NULL, NET_BROADCAST_ADDR, seq_num++, payload, payload_len);
 	return net_send_frame(frame, len, 0);
@@ -303,7 +314,7 @@ int net_send_broadcast(const uint8_t* payload, uint16_t payload_len)
 
 int net_send_broadcast_with_response(const uint8_t* payload, uint16_t payload_len)
 {
-	uint8_t frame[128];
+	static uint8_t frame[128];
 	static uint8_t seq_num = 0;
 	uint16_t len = net_build_frame(frame, NULL, NET_BROADCAST_ADDR, seq_num++, payload, payload_len);
 	return net_send_frame(frame, len, 1);
@@ -311,7 +322,7 @@ int net_send_broadcast_with_response(const uint8_t* payload, uint16_t payload_le
 
 int net_send_to_16bit(net_addr16_t dst_addr, const uint8_t* payload, uint16_t payload_len)
 {
-	uint8_t frame[128];
+	static uint8_t frame[128];
 	static uint8_t seq_num = 0;
 	uint16_t len = net_build_frame(frame, NULL, dst_addr, seq_num++, payload, payload_len);
 	return net_send_frame(frame, len, 0);
@@ -319,7 +330,7 @@ int net_send_to_16bit(net_addr16_t dst_addr, const uint8_t* payload, uint16_t pa
 
 int net_send_to_64bit(const net_eui64_t* dst_eui, const uint8_t* payload, uint16_t payload_len)
 {
-	uint8_t frame[128];
+	static uint8_t frame[128];
 	static uint8_t seq_num = 0;
 	uint16_t len = net_build_frame(frame, dst_eui, 0, seq_num++, payload, payload_len);
 	return net_send_frame(frame, len, 0);

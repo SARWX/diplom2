@@ -100,7 +100,7 @@ cmd_parse_result_t cmd_parse(const char* buffer)
 		return result;
 	}
 	
-	char cmd_buffer[128];
+	static char cmd_buffer[128];
 	size_t buffer_len = strlen(buffer);
 	
 	if (buffer_len >= sizeof(cmd_buffer)) {
@@ -133,7 +133,7 @@ cmd_parse_result_t cmd_parse(const char* buffer)
 	}
 	
 	/* Extract command and convert to uppercase */
-	char cmd_upper[64];
+	static char cmd_upper[64];
 	size_t copy_len = (cmd_len < sizeof(cmd_upper) - 1) ? cmd_len : sizeof(cmd_upper) - 1;
 	str_to_upper(cmd_upper, cmd_buffer, copy_len + 1);
 	cmd_upper[copy_len] = '\0';
