@@ -127,8 +127,8 @@ static void handle_get_status(void)
 static void handle_test_ss_twr(void)
 {
 	uart_dbg(">>> TEST_SS_TWR\r\n");
-	float dist;
-	if (ss_twr_measure_distance(2, &dist) == 0) {
+	float dist, temp;
+	if (ss_twr_measure_distance(2, &dist, &temp) == 0) {
 		int dist_mm = (int)(dist * 1000.0f);
 		uart_dbg("dist=%d.%03d m\r\n", dist_mm / 1000, dist_mm % 1000);
 		reply_ok();

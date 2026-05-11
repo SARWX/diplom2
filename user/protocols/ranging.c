@@ -29,7 +29,7 @@ static void do_ranging_cycle(net_devices_list_t* devices, uint8_t own_seq_id)
 		if (target->seq_id != own_seq_id &&
 		    target->device_type != DEVICE_TYPE_TAG) {
 			float dist;
-			if (ss_twr_measure_distance(dev_addr(target), &dist) == 0)
+			if (ss_twr_measure_distance(dev_addr(target), &dist, NULL) == 0)
 				net_device_update_distance(self, target->seq_id, dist);
 			sleep_ms(10);
 		}

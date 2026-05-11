@@ -3,7 +3,7 @@
 #include <string.h>
 
 static void write_row(uint8_t from_id, uint8_t to_id, float distance_m,
-                      uint8_t* buf, uint16_t* offset)
+                      int8_t temperature_c, uint8_t* buf, uint16_t* offset)
 {
 	int32_t mm = (int32_t)(distance_m * 1000.0f);
 	buf[(*offset)++] = from_id;
@@ -12,6 +12,7 @@ static void write_row(uint8_t from_id, uint8_t to_id, float distance_m,
 	buf[(*offset)++] = (uint8_t)(mm >> 8);
 	buf[(*offset)++] = (uint8_t)(mm >> 16);
 	buf[(*offset)++] = (uint8_t)(mm >> 24);
+	buf[(*offset)++] = (uint8_t)temperature_c;
 }
 
 static uint16_t write_header(uint8_t* buf)
@@ -34,7 +35,7 @@ void meas_table_serialize_row(const net_device_t* dev,
 	for (int i = 0; i < MAX_DISTANCES; i++) {
 		if (i == dev->seq_id) continue;
 		if (dev->distances[i] == DISTANCE_INVALID) continue;
-		write_row(dev->seq_id, (uint8_t)i, dev->distances[i], buf, &offset);
+		write_row(dev->seq_id, (uint8_t)i, dev->distances[i], dev->temperature, buf, &offset);
 		rows++;
 	}
 
@@ -55,7 +56,7 @@ void meas_table_serialize(const net_devices_list_t* list,
 		for (int i = 0; i < MAX_DISTANCES; i++) {
 			if (i == dev->seq_id) continue;
 			if (dev->distances[i] == DISTANCE_INVALID) continue;
-			write_row(dev->seq_id, (uint8_t)i, dev->distances[i], buf, &offset);
+			write_row(dev->seq_id, (uint8_t)i, dev->distances[i], dev->temperature, buf, &offset);
 			rows++;
 		}
 		dev = dev->next;
@@ -87,10 +88,13 @@ int meas_table_deserialize(net_devices_list_t* list,
 			(uint32_t)buf[offset + 2] << 16 |
 			(uint32_t)buf[offset + 3] << 24);
 		offset += 4;
+		int8_t temp_c = (int8_t)buf[offset++];
 
 		net_device_t* dev = net_device_find_by_seq(list, from_id);
-		if (dev && to_id < MAX_DISTANCES)
+		if (dev && to_id < MAX_DISTANCES) {
 			dev->distances[to_id] = (float)mm / 1000.0f;
+			dev->temperature = temp_c;
+		}
 	}
 
 	return 0;
@@ -102,12 +106,13 @@ void meas_table_print(const net_devices_list_t* list)
 	uart_dbg("\r\n=== Distance Table ===\r\n");
 	const net_device_t* dev = list->head;
 	while (dev) {
+		uart_dbg("  [%d] T=%d C\r\n", dev->seq_id, (int)dev->temperature);
 		for (int j = 0; j < MAX_DISTANCES; j++) {
 			if (j == dev->seq_id) continue;
 			if (dev->distances[j] == DISTANCE_INVALID) continue;
 			{
 				int dmm = (int)(dev->distances[j] * 1000.0f);
-				uart_dbg("  %d -> %d : %d.%03d m\r\n",
+				uart_dbg("    %d -> %d : %d.%03d m\r\n",
 				         dev->seq_id, j, dmm / 1000, dmm % 1000);
 			}
 		}

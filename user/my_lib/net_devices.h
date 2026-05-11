@@ -19,6 +19,7 @@ typedef struct net_device {
 	uint8_t seq_id;               /**< Sequential ID assigned during enumeration */
 	device_type_t device_type;    /**< Type of this node (anchor or tag) */
 	float* distances;             /**< Array[MAX_ANCHORS] of measured distances to other anchors (m) */
+	int8_t temperature;           /**< Temperature at time of last measurement batch (°C) */
 	struct net_device* next;      /**< Next node in the singly-linked list */
 } net_device_t;
 

@@ -12,14 +12,15 @@
  * ---------  ----  ---------------------------------------------------
  * 0          1     magic[0] = 0xAA
  * 1          1     magic[1] = 0xBB
- * 2          1     version  = 1
+ * 2          1     version  = 2
  * 3          1     row_count
- * 4 + 6*i   1     from_seq_id
- * 5 + 6*i   1     to_seq_id
- * 6 + 6*i   4     distance_mm (int32, signed, little-endian)
+ * 4 + 7*i   1     from_seq_id
+ * 5 + 7*i   1     to_seq_id
+ * 6 + 7*i   4     distance_mm (int32, signed, little-endian)
+ * 10 + 7*i  1     temperature_c (int8, signed, °C)
  * @endcode
  *
- * Total size: 4 + row_count * 6 bytes.
+ * Total size: 4 + row_count * 7 bytes.
  * Negative distance_mm values are valid (uncalibrated measurements).
  */
 
@@ -28,9 +29,9 @@
 
 #define MEAS_TABLE_MAGIC_0  0xAAu
 #define MEAS_TABLE_MAGIC_1  0xBBu
-#define MEAS_TABLE_VERSION  1u
+#define MEAS_TABLE_VERSION  2u
 #define MEAS_TABLE_HDR_SIZE 4u
-#define MEAS_TABLE_ROW_SIZE 6u
+#define MEAS_TABLE_ROW_SIZE 7u
 
 /**
  * @brief Serialize the distance table of a single device into @p buf.

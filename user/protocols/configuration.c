@@ -112,16 +112,24 @@ void configuration_perform_measurements(net_devices_list_t* devices, uint8_t my_
 	if (!my_device)
 		return;
 
+	float temperature = 0.0f;
+	int temp_measured = 0;
 	net_device_t* target = devices->head;
 	while (target) {
 		if (target->seq_id != my_seq_id) {
 			float distance;
-			if (ss_twr_measure_distance(device_addr(target), &distance) == 0)
+			float temp;
+			if (ss_twr_measure_distance(device_addr(target), &distance, &temp) == 0) {
 				net_device_update_distance(my_device, target->seq_id, distance);
+				temperature = temp;
+				temp_measured = 1;
+			}
 			sleep_ms(50);
 		}
 		target = target->next;
 	}
+	if (temp_measured)
+		my_device->temperature = (int8_t)temperature;
 }
 
 /*==============================================================================

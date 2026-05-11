@@ -81,7 +81,7 @@ static float twr_calc_distance(uint32 poll_tx_ts, uint32 resp_rx_ts,
 	return tof * (float)SPEED_OF_LIGHT;
 }
 
-int ss_twr_measure_distance(net_addr16_t dst_addr, float* distance)
+int ss_twr_measure_distance(net_addr16_t dst_addr, float* distance, float* temperature)
 {
     decaIrqStatus_t irq_state;
     uint32_t poll_tx_ts, resp_rx_ts, poll_rx_ts = 0, resp_tx_ts = 0;
@@ -137,13 +137,12 @@ int ss_twr_measure_distance(net_addr16_t dst_addr, float* distance)
         int32 carrier_int = dwt_readcarrierintegrator();
         float clock_offset = (float)carrier_int *
                              (float)(FREQ_OFFSET_MULTIPLIER * HERTZ_TO_PPM_MULTIPLIER_CHAN_2 / 1.0e6);
-        float raw_dist = twr_calc_distance(poll_tx_ts, resp_rx_ts, poll_rx_ts, resp_tx_ts,
-                                           clock_offset);
         uint8 raw_temp_code = (dwt_readtempvbat(1) & 0xFF00u) >> 8;
-        /* Inline float version of dwt_convertrawtemperature — avoids pulling
-         * in double-precision library (SAR_TEMP_TO_CELCIUS_CONV is 1.14 double). */
-        float temperature = ((float)raw_temp_code - (float)dwt_geticreftemp()) * 1.14f + 23.0f;
-        *distance = raw_dist - K_TEMP_M_PER_DEG * (temperature - T_REF);
+        float temp = ((float)raw_temp_code - (float)dwt_geticreftemp()) * 1.14f + 23.0f;
+        *distance = twr_calc_distance(poll_tx_ts, resp_rx_ts, poll_rx_ts, resp_tx_ts,
+                                      clock_offset) - K_TEMP_M_PER_DEG * (temp - T_REF);
+        if (temperature)
+            *temperature = temp;
     }
     ret = 0;
 
