@@ -5,7 +5,17 @@
 #include "enumeration.h"
 #include "configuration.h"
 #include "cmd_parser.h"
+#include "ss_twr.h"
 #include <string.h>
+
+static int parse_uint_a(const char** p)
+{
+	while (**p == ' ' || **p == '\t') (*p)++;
+	if (**p < '0' || **p > '9') return -1;
+	int val = 0;
+	while (**p >= '0' && **p <= '9') { val = val * 10 + (**p - '0'); (*p)++; }
+	return val;
+}
 
 /** @brief List of network devices discovered during enumeration. */
 static net_devices_list_t devices;
@@ -35,6 +45,21 @@ static void anchor_idle(net_devices_list_t *devs, net_message_t *msg)
 		configuration_perform_measurements(devs, enumeration_get_own_seq_id());
 		configuration_send_measurements(devs, master_addr);
 		net_state.mode = NET_MODE_IDLE;
+		break;
+	}
+	case CMD_SET_ANT_DLY: {
+		const char* p = result.args;
+		int tx_dly = parse_uint_a(&p);
+		int rx_dly = parse_uint_a(&p);
+		if (tx_dly >= 0 && rx_dly >= 0)
+			ss_twr_set_ant_dly((uint16_t)tx_dly, (uint16_t)rx_dly);
+		break;
+	}
+	case CMD_SET_TEMP_COEF: {
+		const char* p = result.args;
+		int k_per_mil = parse_uint_a(&p);
+		if (k_per_mil >= 0)
+			ss_twr_set_temp_coef((float)k_per_mil * 1e-6f);
 		break;
 	}
 	default:

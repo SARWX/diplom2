@@ -131,19 +131,6 @@ static void uart_vprintf(const char *fmt, va_list ap)
 		case 'X':
 			put_uint(va_arg(ap, uint32_t), 16, 1, width, zpad);
 			break;
-		case 'f': {
-			float v = (float)va_arg(ap, double);
-			if (v < 0) { uart_putchar('-'); v = -v; }
-			uint32_t int_part = (uint32_t)v;
-			put_uint(int_part, 10, 0, width, zpad);
-			if (precision > 0) {
-				uart_putchar('.');
-				float frac = v - (float)int_part;
-				for (uint8_t p = 0; p < precision; p++) frac *= 10.0f;
-				put_uint((uint32_t)frac, 10, 0, precision, 1);
-			}
-			break;
-		}
 		case 's':
 			uart_puts(va_arg(ap, const char *));
 			break;

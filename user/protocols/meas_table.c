@@ -112,8 +112,9 @@ void meas_table_print(const net_devices_list_t* list)
 			if (dev->distances[j] == DISTANCE_INVALID) continue;
 			{
 				int dmm = (int)(dev->distances[j] * 1000.0f);
-				uart_dbg("    %d -> %d : %d.%03d m\r\n",
-				         dev->seq_id, j, dmm / 1000, dmm % 1000);
+				int adm = dmm < 0 ? -dmm : dmm;
+				uart_dbg("    %d -> %d : %s%d.%03d m\r\n",
+				         dev->seq_id, j, dmm < 0 ? "-" : "", adm / 1000, adm % 1000);
 			}
 		}
 		dev = dev->next;

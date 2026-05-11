@@ -127,8 +127,8 @@ static void handle_get_status(void)
 static void handle_test_ss_twr(void)
 {
 	uart_dbg(">>> TEST_SS_TWR\r\n");
-	float dist, temp;
-	if (ss_twr_measure_distance(2, &dist, &temp) == 0) {
+	float dist;
+	if (ss_twr_measure_distance(2, &dist, NULL) == 0) {
 		int dist_mm = (int)(dist * 1000.0f);
 		uart_dbg("dist=%d.%03d m\r\n", dist_mm / 1000, dist_mm % 1000);
 		reply_ok();
@@ -158,6 +158,93 @@ static void handle_ranging_stop(void)
 	reply_ok();
 }
 
+/*==============================================================================
+ * Argument Parsing / Formatting Helpers
+ *============================================================================*/
+
+static int parse_uint(const char** p)
+{
+	while (**p == ' ' || **p == '\t') (*p)++;
+	if (**p < '0' || **p > '9') return -1;
+	int val = 0;
+	while (**p >= '0' && **p <= '9') { val = val * 10 + (**p - '0'); (*p)++; }
+	return val;
+}
+
+static uint8_t fmt_uint(char* buf, unsigned int val)
+{
+	char tmp[10]; uint8_t i = 0;
+	if (val == 0) { buf[0] = '0'; return 1; }
+	while (val > 0) { tmp[i++] = '0' + val % 10; val /= 10; }
+	uint8_t n = 0;
+	while (i > 0) buf[n++] = tmp[--i];
+	return n;
+}
+
+/*==============================================================================
+ * Network Command Forwarding
+ *============================================================================*/
+
+static int send_net_cmd(uint8_t seq_id, const char* payload, uint16_t payload_len)
+{
+	net_device_t* dev = net_device_find_by_seq(&devices, seq_id);
+	if (!dev) return -1;
+	net_addr16_t addr = dev->mac_address[0] | ((net_addr16_t)dev->mac_address[1] << 8);
+	return net_send_to_16bit(addr, (const uint8_t*)payload, payload_len);
+}
+
+/*==============================================================================
+ * SET_ANT_DLY / SET_TEMP_COEF Handlers
+ *============================================================================*/
+
+static void handle_set_ant_dly(const char* args)
+{
+	if (!args) { reply_err(); return; }
+	const char* p = args;
+	int seq_id = parse_uint(&p);
+	int tx_dly = parse_uint(&p);
+	int rx_dly = parse_uint(&p);
+	if (seq_id < 0 || tx_dly < 0 || rx_dly < 0) { reply_err(); return; }
+
+	uart_dbg(">>> SET_ANT_DLY seq=%d tx=%d rx=%d\r\n", seq_id, tx_dly, rx_dly);
+
+	if (seq_id == (int)enumeration_get_own_seq_id()) {
+		ss_twr_set_ant_dly((uint16_t)tx_dly, (uint16_t)rx_dly);
+		reply_ok();
+	} else {
+		char buf[32]; uint8_t n = 0;
+		memcpy(buf, "SET_ANT_DLY ", 12); n = 12;
+		n += fmt_uint(buf + n, (unsigned)tx_dly);
+		buf[n++] = ' ';
+		n += fmt_uint(buf + n, (unsigned)rx_dly);
+		if (send_net_cmd((uint8_t)seq_id, buf, n) >= 0) reply_ok(); else reply_err();
+	}
+}
+
+/* SET_TEMP_COEF <seq_id> <k_per_million>
+ * k_per_million = coefficient × 1 000 000 (integer, no float parsing needed).
+ * Example: coefficient 0.00215 → send "SET_TEMP_COEF 1 2150" */
+static void handle_set_temp_coef(const char* args)
+{
+	if (!args) { reply_err(); return; }
+	const char* p = args;
+	int seq_id    = parse_uint(&p);
+	int k_per_mil = parse_uint(&p);
+	if (seq_id < 0 || k_per_mil < 0) { reply_err(); return; }
+
+	uart_dbg(">>> SET_TEMP_COEF seq=%d k=%d (x1e6)\r\n", seq_id, k_per_mil);
+
+	if (seq_id == (int)enumeration_get_own_seq_id()) {
+		ss_twr_set_temp_coef((float)k_per_mil * 1e-6f);
+		reply_ok();
+	} else {
+		char buf[32]; uint8_t n = 0;
+		memcpy(buf, "SET_TEMP_COEF ", 14); n = 14;
+		n += fmt_uint(buf + n, (unsigned)k_per_mil);
+		if (send_net_cmd((uint8_t)seq_id, buf, n) >= 0) reply_ok(); else reply_err();
+	}
+}
+
 static void handle_debug(uint8_t enable)
 {
 	uart_dbg_set(enable);
@@ -182,8 +269,10 @@ static void process_command(cmd_parse_result_t cmd)
 	case CMD_TEST_SS_TWR:    handle_test_ss_twr();    break;
 	case CMD_RANGING_START:  handle_ranging_start();  break;
 	case CMD_RANGING_STOP:
-	case CMD_STOP:           handle_ranging_stop();   break;
-	default:                 reply_unk();             break;
+	case CMD_STOP:           handle_ranging_stop();                 break;
+	case CMD_SET_ANT_DLY:    handle_set_ant_dly(cmd.args);         break;
+	case CMD_SET_TEMP_COEF:  handle_set_temp_coef(cmd.args);       break;
+	default:                 reply_unk();                           break;
 	}
 }
 

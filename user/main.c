@@ -51,7 +51,7 @@ int main(void)
 	reset_DW1000();
 	
 	spi_set_rate_low();
-	if (dwt_initialise(DWT_LOADUCODE | DWT_READ_OTP_LID | DWT_READ_OTP_PID) == DWT_ERROR) {
+	if (dwt_initialise(DWT_LOADUCODE | DWT_READ_OTP_LID | DWT_READ_OTP_PID | DWT_READ_OTP_TMP | DWT_READ_OTP_BAT) == DWT_ERROR) {
 		while (1);
 	}
 	spi_set_rate_high();

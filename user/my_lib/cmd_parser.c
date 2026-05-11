@@ -52,6 +52,8 @@ static const cmd_map_t cmd_table[] = {
 	{"ERR",             3,  CMD_ERR},
 	{"TEST_SS_TWR",     11, CMD_TEST_SS_TWR},
 	{"LOC_POS_SYS",    11, CMD_PING},
+	{"SET_ANT_DLY",    11, CMD_SET_ANT_DLY},
+	{"SET_TEMP_COEF",  13, CMD_SET_TEMP_COEF},
 };
 
 #define CMD_TABLE_SIZE (sizeof(cmd_table) / sizeof(cmd_map_t))

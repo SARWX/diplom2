@@ -26,9 +26,14 @@
  * Constants are defined in deca_device_api.h (double precision there);
  * cast to float at the use site to avoid pulling in double library. */
 
-/* Temperature correction: set coefficient to 0 until calibrated. */
-#define K_TEMP_M_PER_DEG  0.0f
+/* Default antenna delays and temperature coefficient — overridable at runtime. */
+#define K_TEMP_DEFAULT    0.0f
 #define T_REF             23.0f
+
+static uint16_t g_tx_ant_dly = TX_ANT_DLY;
+static uint16_t g_rx_ant_dly = RX_ANT_DLY;
+static float    g_k_temp     = K_TEMP_DEFAULT;
+static float    g_last_temp  = T_REF;
 
 /* At 6.8 Mbps, RMARKER→RXFCG ≈ 300 µs for a 12-byte frame.
  * Responder delay 3500 µs gives ~3200 µs ISR budget.
@@ -137,12 +142,10 @@ int ss_twr_measure_distance(net_addr16_t dst_addr, float* distance, float* tempe
         int32 carrier_int = dwt_readcarrierintegrator();
         float clock_offset = (float)carrier_int *
                              (float)(FREQ_OFFSET_MULTIPLIER * HERTZ_TO_PPM_MULTIPLIER_CHAN_2 / 1.0e6);
-        uint8 raw_temp_code = (dwt_readtempvbat(1) & 0xFF00u) >> 8;
-        float temp = ((float)raw_temp_code - (float)dwt_geticreftemp()) * 1.14f + 23.0f;
         *distance = twr_calc_distance(poll_tx_ts, resp_rx_ts, poll_rx_ts, resp_tx_ts,
-                                      clock_offset) - K_TEMP_M_PER_DEG * (temp - T_REF);
+                                      clock_offset) - g_k_temp * (g_last_temp - T_REF);
         if (temperature)
-            *temperature = temp;
+            *temperature = g_last_temp;
     }
     ret = 0;
 
@@ -170,7 +173,7 @@ int ss_twr_handle_rx_frame(const net_message_t* msg)
 		resp_tx_time = (uint32)((poll_rx_ts +
 			(uint64_t)POLL_RX_TO_RESP_TX_DLY_UUS * UUS_TO_DWT_TIME) >> 8);
 		resp_tx_time &= 0xFFFFFFFEUL;
-		resp_tx_ts_est = (resp_tx_time << 8) + TX_ANT_DLY;
+		resp_tx_ts_est = (resp_tx_time << 8) + g_tx_ant_dly;
 
 		resp_template[2] = twr_frame_seq++;
 		resp_template[5] = msg->src_addr16 & 0xFF;
@@ -251,4 +254,24 @@ void ss_twr_isr(const uint8_t *frame, uint16_t len)
 		dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS);
 	}
 	dwt_rxenable(DWT_START_RX_IMMEDIATE);
+}
+
+float ss_twr_read_temperature(void)
+{
+	uint8 raw = (dwt_readtempvbat(1) & 0xFF00u) >> 8;
+	g_last_temp = ((float)raw - (float)dwt_geticreftemp()) * 1.14f + 23.0f;
+	return g_last_temp;
+}
+
+void ss_twr_set_ant_dly(uint16_t tx_dly, uint16_t rx_dly)
+{
+	g_tx_ant_dly = tx_dly;
+	g_rx_ant_dly = rx_dly;
+	dwt_settxantennadelay(tx_dly);
+	dwt_setrxantennadelay(rx_dly);
+}
+
+void ss_twr_set_temp_coef(float k)
+{
+	g_k_temp = k;
 }
