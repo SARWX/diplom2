@@ -12,10 +12,10 @@ binary payloads are specified.
 To detect the device before issuing commands, the host sends the identification
 string and the device replies with a short token.
 
-| Direction    | Data           |
-|--------------|----------------|
-| Host → Device | `LOC_POS_SYS\r\n` |
-| Device → Host | `LPS\r\n`       |
+| Direction      | Data              |
+|----------------|-------------------|
+| Host → Device  | `LOC_POS_SYS\r\n` |
+| Device → Host  | `LPS\r\n`         |
 
 ---
 
@@ -24,11 +24,11 @@ string and the device replies with a short token.
 Every command receives exactly one of these terminal responses after it
 completes (or fails):
 
-| Response     | Meaning                          |
-|--------------|----------------------------------|
-| `OK\r\n`     | Command completed successfully   |
-| `ERR\r\n`    | Command failed                   |
-| `UNK\r\n`    | Command not recognized           |
+| Response   | Meaning                        |
+|------------|--------------------------------|
+| `OK\r\n`   | Command completed successfully |
+| `ERR\r\n`  | Command failed                 |
+| `UNK\r\n`  | Command not recognized         |
 
 Binary payloads (described per-command) are sent **before** the terminal
 response line.
@@ -65,7 +65,8 @@ its sequential ID, type (main_anchor / anchor / tag), and MAC address.
 See [device_list_format.md](device_list_format.md) for the full layout.
 
 The measurement table packet (magic `0xAA 0xBB`) contains the inter-anchor
-distances measured during configuration.
+distances measured during configuration, including the temperature recorded
+at each measuring device.
 See [meas_table_format.md](meas_table_format.md) for the full layout.
 
 The host can distinguish the two packets by their second magic byte
@@ -113,12 +114,52 @@ Returns the current system state.
 OK <initialized> <device_count>\r\n
 ```
 
-| Field           | Type | Description                                         |
-|-----------------|------|-----------------------------------------------------|
-| `initialized`   | `0`/`1` | Whether `INITIALIZE` has completed successfully  |
-| `device_count`  | decimal integer | Total number of discovered anchors       |
+| Field          | Type            | Description                                      |
+|----------------|-----------------|--------------------------------------------------|
+| `initialized`  | `0`/`1`         | Whether `INITIALIZE` has completed successfully  |
+| `device_count` | decimal integer | Total number of discovered anchors               |
 
 Example: `OK 1 3\r\n` — initialized, 3 anchors found.
+
+---
+
+### `SET_ANT_DLY <seq_id> <tx_dly> <rx_dly>`
+
+Sets the TX and RX antenna delays on a specific device. If `seq_id` matches
+the main anchor's own ID the change is applied locally; otherwise the command
+is forwarded over the UWB network to the target anchor.
+
+| Argument  | Type    | Description                                           |
+|-----------|---------|-------------------------------------------------------|
+| `seq_id`  | integer | Sequential ID of the target device                   |
+| `tx_dly`  | integer | TX antenna delay in DW1000 units (default: 16436)    |
+| `rx_dly`  | integer | RX antenna delay in DW1000 units (default: 16436)    |
+
+**Response:** `OK\r\n` on success, `ERR\r\n` if the target device is unknown.
+
+Example: `SET_ANT_DLY 1 16500 16500\r\n`
+
+---
+
+### `SET_TEMP_COEF <seq_id> <k_per_million>`
+
+Sets the temperature correction coefficient on a specific device.
+If `seq_id` matches the main anchor's own ID the change is applied locally;
+otherwise the command is forwarded over the UWB network.
+
+The coefficient is passed as an integer equal to `K × 1 000 000`
+(avoids floating-point parsing over UART).
+
+| Argument        | Type    | Description                                              |
+|-----------------|---------|----------------------------------------------------------|
+| `seq_id`        | integer | Sequential ID of the target device                      |
+| `k_per_million` | integer | Temperature coefficient × 10⁶ (m/°C)                   |
+
+Correction applied: `distance -= K * (T_measured - 23.0)`
+
+**Response:** `OK\r\n` on success, `ERR\r\n` if the target device is unknown.
+
+Example: `SET_TEMP_COEF 1 2150\r\n` sets K = 0.00215 m/°C on device 1.
 
 ---
 
@@ -145,7 +186,7 @@ Stops continuous ranging on all nodes.
 ### `DEBUG_ON` / `DEBUG_OFF`
 
 Enable or disable human-readable debug output on the UART line. Debug is
-enabled by default after power-on.
+disabled by default after power-on.
 
 **Response:** `OK DEBUG_ON\r\n` or `OK DEBUG_OFF\r\n`
 
@@ -153,8 +194,9 @@ enabled by default after power-on.
 
 ### `TEST_SS_TWR`
 
-Performs a single SS-TWR ranging exchange with device address `2` and prints
-the result as a debug line. Intended for development/calibration only.
+Performs a single SS-TWR ranging exchange with device at short address `2`
+and prints the measured distance as a debug line. Intended for
+development/calibration only.
 
 **Response on success:** `OK\r\n` (distance logged via debug output)  
 **Response on failure:** `ERR\r\n`
@@ -164,7 +206,7 @@ the result as a debug line. Intended for development/calibration only.
 ## Ranging Packet Stream
 
 While ranging is active the main anchor emits binary packets in the measurement
-table row format (see [meas_table_format.md](meas_table_format.md)).
+table format (see [meas_table_format.md](meas_table_format.md)).
 
 Each packet contains the distances measured by the tag to all anchors in a
 single ranging cycle. The host accumulates these packets until `STOP` is sent,
@@ -173,17 +215,26 @@ at which point the device replies `OK\r\n`.
 ### Host-side flow
 
 ```
-Host                      Device
- |                            |
- |--- INITIALIZE\r\n -------->|
- |<-- <binary device_list> ---|
- |<-- <binary meas_table> ----|
- |<-- OK\r\n -----------------|
- |                            |
- |--- RANGING_START\r\n ----->|
- |<-- <binary row packet> ----|  (repeats every ~200 ms)
- |<-- <binary row packet> ----|
- |         ...                |
- |--- STOP\r\n -------------->|
- |<-- OK\r\n -----------------|
+Host                          Device
+ |                                |
+ |--- LOC_POS_SYS\r\n ---------->|
+ |<-- LPS\r\n --------------------|
+ |                                |
+ |--- INITIALIZE\r\n ------------>|
+ |<-- <binary device_list> -------|
+ |<-- <binary meas_table> --------|
+ |<-- OK\r\n ---------------------|
+ |                                |
+ |--- SET_ANT_DLY 1 16436 16436\r\n ->|
+ |<-- OK\r\n ---------------------|
+ |                                |
+ |--- SET_TEMP_COEF 1 2150\r\n -->|
+ |<-- OK\r\n ---------------------|
+ |                                |
+ |--- RANGING_START\r\n --------->|
+ |<-- <binary meas_table> --------|  (repeats every ~200 ms)
+ |<-- <binary meas_table> --------|
+ |           ...                  |
+ |--- STOP\r\n ------------------>|
+ |<-- OK\r\n ---------------------|
 ```
