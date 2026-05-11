@@ -17,6 +17,19 @@
 #define DWT_TIME_UNITS_F 1.5650040064103e-11f
 #define TX_ANT_DLY 16436
 #define RX_ANT_DLY 16436
+
+/* Carrier integrator clock correction (DecaWave AN005 §3).
+ * HERTZ_TO_PPM is negative so clock_offset_ratio is negative when the
+ * initiator is faster than the responder — this makes the formula
+ * (rtd_init - rtd_resp*(1+ratio)) equivalent to the example's
+ * (rtd_init - rtd_resp*(1-positive_ratio)).
+ * Constants are defined in deca_device_api.h (double precision there);
+ * cast to float at the use site to avoid pulling in double library. */
+
+/* Temperature correction: set coefficient to 0 until calibrated. */
+#define K_TEMP_M_PER_DEG  0.0f
+#define T_REF             23.0f
+
 /* At 6.8 Mbps, RMARKER→RXFCG ≈ 300 µs for a 12-byte frame.
  * Responder delay 3500 µs gives ~3200 µs ISR budget.
  * Initiator enables RX explicitly after TXFRS (~20 µs); response
@@ -58,11 +71,13 @@ void ss_twr_resp_init(void)
 }
 
 static float twr_calc_distance(uint32 poll_tx_ts, uint32 resp_rx_ts,
-				uint32 poll_rx_ts, uint32 resp_tx_ts)
+				uint32 poll_rx_ts, uint32 resp_tx_ts,
+				float clock_offset_ratio)
 {
 	int32 rtd_init = resp_rx_ts - poll_tx_ts;
 	int32 rtd_resp = resp_tx_ts - poll_rx_ts;
-	float tof = ((float)(rtd_init - rtd_resp) * 0.5f) * DWT_TIME_UNITS_F;
+	float rtd_resp_corr = (float)rtd_resp * (1.0f + clock_offset_ratio);
+	float tof = ((float)rtd_init - rtd_resp_corr) * 0.5f * DWT_TIME_UNITS_F;
 	return tof * (float)SPEED_OF_LIGHT;
 }
 
@@ -118,7 +133,18 @@ int ss_twr_measure_distance(net_addr16_t dst_addr, float* distance)
         resp_tx_ts |= (uint32)net_state.rx_buffer[14 + i] << (i * 8);
     }
 
-    *distance = twr_calc_distance(poll_tx_ts, resp_rx_ts, poll_rx_ts, resp_tx_ts);
+    {
+        int32 carrier_int = dwt_readcarrierintegrator();
+        float clock_offset = (float)carrier_int *
+                             (float)(FREQ_OFFSET_MULTIPLIER * HERTZ_TO_PPM_MULTIPLIER_CHAN_2 / 1.0e6);
+        float raw_dist = twr_calc_distance(poll_tx_ts, resp_rx_ts, poll_rx_ts, resp_tx_ts,
+                                           clock_offset);
+        uint8 raw_temp_code = (dwt_readtempvbat(1) & 0xFF00u) >> 8;
+        /* Inline float version of dwt_convertrawtemperature — avoids pulling
+         * in double-precision library (SAR_TEMP_TO_CELCIUS_CONV is 1.14 double). */
+        float temperature = ((float)raw_temp_code - (float)dwt_geticreftemp()) * 1.14f + 23.0f;
+        *distance = raw_dist - K_TEMP_M_PER_DEG * (temperature - T_REF);
+    }
     ret = 0;
 
 restore:
