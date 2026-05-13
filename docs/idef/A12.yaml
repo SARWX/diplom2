@@ -1,4 +1,10 @@
 # IDEF0 — Декомпозиция A2 «Обнаружение устройств»
+# Внешние стрелки (ICOM) = стрелки блока A2 в A1.yaml:
+#   Input:    «Инициализированная аппаратная среда»  (a1 → a2, здесь ext.left)
+#   Output:   «Список устройств (seq_id, MAC, тип)»  (a2 → a3, здесь ext.right)
+#   Control:  «UWB протокол (IEEE 802.15.4)»          (ext.top → a2.top)
+#             «UART команды хоста» (команда INITIALIZE инициирует процесс)
+#   Mechanism: «MAC уровень»                          (ext.bottom → a2.bottom)
 
 diagram:
   name: "Обнаружение устройств — A12"
@@ -22,51 +28,55 @@ activities:
 
 arrows:
 
-  # ── Inputs ───────────────────────────────────────────────────────────────
+  # ── Inputs (= «Инициализированная аппаратная среда» из A1) ───────────────
 
   - label: "Инициализированная\nаппаратная среда"
     from: ext.left
     to: a1.left
 
-  - label: "Ответы устройств\n(«A» — anchor, «T» — tag)\nс EUI-64 и адресом"
-    from: ext.left
-    to: a2.left
+  # ── Outputs (= «Список устройств» из A1) ─────────────────────────────────
 
-  - label: "Накопленный список\n(seq_id, MAC, тип)"
-    from: a2.right
-    to: a3.left
-
-  - label: "CMD_OK от каждого\nустройства"
-    from: ext.left
-    to: a4.left
-
-  - label: "Подтверждённый\nсписок устройств"
+  - label: "Список устройств\n(seq_id, MAC, тип)"
     from: a4.right
     to: ext.right
 
-  # ── Controls ─────────────────────────────────────────────────────────────
+  # ── Controls (= «UWB протокол», «UART команды хоста» из A1) ──────────────
 
-  - label: "Таймауты\n(ENUM_LISTEN_MS,\nSYNC_WAIT_MS)"
+  - label: "UWB протокол\n(IEEE 802.15.4)"
     from: ext.top
-    to: [a2.top, a4.top]
+    to: [a1.top, a3.top]
 
-  - label: "ENUM_RETRY_MAX\n(число попыток)"
+  - label: "UART команды хоста\n(INITIALIZE запускает\nэнумерацию)"
     from: ext.top
     to: a1.top
 
-  - label: "Дедупликация\nsync_ok_senders[]"
-    from: ext.top
-    to: a4.top
+  # ── Mechanisms (= «MAC уровень» из A1) ───────────────────────────────────
 
-  # ── Mechanisms ───────────────────────────────────────────────────────────
-
-  - label: "net_send_broadcast()\n(CMD_DISCOVER)"
+  - label: "MAC уровень\nnet_send_broadcast(CMD_DISCOVER)"
     from: ext.bottom
     to: a1.bottom
 
-  - label: "net_rx_poll() + кольцевой\nбуфер ISR (rx_rbuf)"
+  - label: "MAC уровень\nnet_rx_poll() + кольцевой\nбуфер ISR (rx_rbuf)"
     from: ext.bottom
     to: [a2.bottom, a4.bottom]
+
+  # ── Внутренние стрелки ────────────────────────────────────────────────────
+
+  - label: "Ответы устройств\n(«A»/«T» + EUI-64)\nпо UWB"
+    from: a1.right
+    to: a2.left
+
+  - label: "Накопленный список\nузлов (MAC, тип)"
+    from: a2.right
+    to: a3.left
+
+  - label: "Сериализованный\nSYNC_LIST"
+    from: a3.right
+    to: a4.left
+
+  - label: "Таймауты\n(ENUM_LISTEN_MS,\nSYNC_WAIT_MS)\nENUM_RETRY_MAX"
+    from: ext.top
+    to: [a2.top, a4.top]
 
   - label: "net_device_create()\nnet_device_add()"
     from: ext.bottom

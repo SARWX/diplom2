@@ -1,4 +1,9 @@
 # IDEF0 — Декомпозиция A1 «Инициализация системы»
+# Внешние стрелки (ICOM) = стрелки блока A1 в A1.yaml:
+#   Input:    «Питание и аппаратная конфигурация»  (ext.left → a1.left)
+#   Output:   «Инициализированная аппаратная среда» (a1.right → a2.left → здесь ext.right)
+#   Control:  «Роль устройства»                     (ext.top → a1.top)
+#   Mechanism: «STM32F103C8», «DW1000 UWB трансивер» (ext.bottom → a1.bottom)
 
 diagram:
   name: "Инициализация системы — A11"
@@ -22,33 +27,47 @@ activities:
 
 arrows:
 
-  # ── Inputs ───────────────────────────────────────────────────────────────
+  # ── Inputs (= «Питание и аппаратная конфигурация» из A1) ─────────────────
 
-  - label: "Питание (VCC)\nи тактирование (HSE)"
+  - label: "Питание и аппаратная\nконфигурация"
     from: ext.left
     to: a1.left
+
+  # ── Outputs (= «Инициализированная аппаратная среда» из A1) ──────────────
+
+  - label: "Инициализированная\nаппаратная среда"
+    from: a4.right
+    to: ext.right
+
+  # ── Controls (= «Роль устройства» из A1) ─────────────────────────────────
+
+  - label: "Роль устройства\n(таблица Part ID → тип)"
+    from: ext.top
+    to: a3.top
+
+  # ── Mechanisms (= «STM32F103C8», «DW1000 UWB трансивер» из A1) ───────────
+
+  - label: "STM32F103C8\n(RCC, GPIO, USART, SPI)\nperipherals_init, uart_init"
+    from: ext.bottom
+    to: a1.bottom
+
+  - label: "DW1000 UWB трансивер\ndwt_initialise (OTP_TMP, OTP_LID,\nOTP_PID, OTP_BAT)"
+    from: ext.bottom
+    to: a2.bottom
+
+  # ── Внутренние стрелки ────────────────────────────────────────────────────
 
   - label: "Конфигурация SPI,\nGPIO (сброс, IRQ, CS)"
     from: a1.right
     to: a2.left
 
-  - label: "Part ID из DW1000 OTP"
+  - label: "Part ID из OTP"
     from: a2.right
     to: a3.left
 
-  - label: "EUI-64 устройства\nи роль (тип)"
+  - label: "EUI-64 и роль\nустройства (тип)"
     from: a3.right
     to: a4.left
-
-  - label: "Инициализированный\nMAC-уровень"
-    from: a4.right
-    to: ext.right
-
-  # ── Controls ─────────────────────────────────────────────────────────────
-
-  - label: "Таблица регистрации\nустройств (Part ID → роль)"
-    from: ext.top
-    to: a3.top
 
   - label: "Параметры UWB\n(канал 2, PRF 64 МГц,\n6.8 Мбит/с, преамбула 128)"
     from: ext.top
@@ -57,16 +76,6 @@ arrows:
   - label: "PAN ID, режим\nфильтрации кадров"
     from: ext.top
     to: a4.top
-
-  # ── Mechanisms ───────────────────────────────────────────────────────────
-
-  - label: "STM32 RCC, GPIO, USART\n(peripherals_init, uart_init)"
-    from: ext.bottom
-    to: a1.bottom
-
-  - label: "DW1000 SPI API\n(dwt_initialise: OTP_TMP,\nOTP_LID, OTP_PID, OTP_BAT)"
-    from: ext.bottom
-    to: a2.bottom
 
   - label: "device_register()\ndevice_init_from_hardware()"
     from: ext.bottom

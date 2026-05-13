@@ -1,4 +1,11 @@
 # IDEF0 — Декомпозиция A5 «Обработка команд и вывод данных»
+# Внешние стрелки (ICOM) = стрелки блока A5 в A1.yaml:
+#   Input:    «UART команды хоста»                        (ext.left → a5.left)
+#             «Данные дистанций (meas_table rows)»         (a4 → a5, здесь ext.left)
+#   Output:   «Данные дистанций (бинарные пакеты)»         (a5 → ext.right)
+#             «Статус системы (OK / ERR / device list)»    (a5 → ext.right)
+#   Control:  «UART команды хоста»                        (ext.top → a5.top)
+#   Mechanism: «UART драйвер»                              (ext.bottom → a5.bottom)
 
 diagram:
   name: "Обработка команд и вывод данных — A15"
@@ -12,74 +19,80 @@ activities:
     name: "Приём и разбор\nUART-команды"
 
   - id: a2
-    name: "Диспетчеризация\nкоманды"
+    name: "Диспетчеризация\nи выполнение\nкоманды"
 
   - id: a3
-    name: "Пересылка сетевых\nкоманд (форвардинг)"
+    name: "Пересылка сетевых\nкоманд на узлы\n(форвардинг)"
 
   - id: a4
-    name: "Приём потока\nдальнометрии"
+    name: "Приём потока\nдальнометрии\nот TAG"
 
   - id: a5
-    name: "Формирование и\nотправка ответа хосту"
+    name: "Формирование и\nотправка ответа\nхосту"
 
 arrows:
 
-  # ── Inputs ───────────────────────────────────────────────────────────────
+  # ── Inputs (= «UART команды хоста», «Данные дистанций» из A1) ────────────
 
-  - label: "Строка UART от хоста\n(ASCII, \\r\\n)"
+  - label: "UART команды хоста\n(ASCII строка, \\r\\n)"
     from: ext.left
     to: a1.left
+
+  - label: "Данные дистанций\n(meas_table rows от TAG\nчерез UWB → мастер)"
+    from: ext.left
+    to: a4.left
+
+  # ── Outputs (= «Данные дистанций», «Статус системы» из A1) ───────────────
+
+  - label: "Данные дистанций\n(бинарные пакеты meas_table\nчерез UART на хост)"
+    from: a5.right
+    to: ext.right
+
+  - label: "Статус системы\n(OK / ERR / device list\nчерез UART на хост)"
+    from: a5.right
+    to: ext.right
+
+  # ── Controls (= «UART команды хоста» из A1) ──────────────────────────────
+
+  - label: "UART команды хоста\n(INITIALIZE / RANGING_START /\nSTOP / SET_ANT_DLY / ...)"
+    from: ext.top
+    to: a1.top
+
+  # ── Mechanisms (= «UART драйвер» из A1) ──────────────────────────────────
+
+  - label: "UART драйвер\nuart_readline_idle()\ncmd_parse(), cmd_table[]"
+    from: ext.bottom
+    to: a1.bottom
+
+  - label: "UART драйвер\nuart_puts() / uart_putchar()\nsend_device_list_uart()\nsend_table_uart()"
+    from: ext.bottom
+    to: a5.bottom
+
+  # ── Внутренние стрелки ────────────────────────────────────────────────────
 
   - label: "Распознанная команда\n(CMD + аргументы)"
     from: a1.right
     to: a2.left
 
+  - label: "Параметры для узла\n(seq_id, tx_dly / rx_dly / k)"
+    from: a2.right
+    to: a3.left
+
   - label: "Результат выполнения\n(OK / ERR / данные)"
     from: a2.right
     to: a5.left
 
-  - label: "Параметры для узла\n(seq_id, tx_dly/rx_dly/k)"
-    from: a2.right
-    to: a3.left
-
-  - label: "Бинарные пакеты\ndistance (meas_table)\nот TAG по UWB"
-    from: ext.left
-    to: a4.left
-
-  - label: "Данные дистанций\nдля вывода"
+  - label: "Бинарные пакеты\ndistance для вывода"
     from: a4.right
     to: a5.left
 
-  # ── Outputs ──────────────────────────────────────────────────────────────
-
-  - label: "OK / ERR / UNK \\r\\n\nбинарные пакеты через UART"
-    from: a5.right
-    to: ext.right
-
-  - label: "Сетевые команды\n(SET_ANT_DLY / SET_TEMP_COEF)\nчерез UWB на якоря"
-    from: a3.right
-    to: ext.right
-
-  # ── Controls ─────────────────────────────────────────────────────────────
-
-  - label: "Протокол команд\n(LOC_POS_SYS\\r\\n → LPS\\r\\n)\nтаблица cmd_table[]"
-    from: ext.top
-    to: a1.top
-
-  - label: "Признак инициализации\n(initialized flag)"
+  - label: "Протокол команд\n(таблица cmd_table[],\nпризнак initialized)"
     from: ext.top
     to: a2.top
 
-  - label: "Флаг DEBUG_ON/OFF\n(verbose UART вывод)"
+  - label: "Флаг DEBUG_ON/OFF"
     from: ext.top
     to: a5.top
-
-  # ── Mechanisms ───────────────────────────────────────────────────────────
-
-  - label: "uart_readline_idle()\ncmd_parse()\n(cmd_table, strcmp)"
-    from: ext.bottom
-    to: a1.bottom
 
   - label: "process_command()\nhandle_initialize()\nhandle_ranging_start() и др."
     from: ext.bottom
@@ -92,7 +105,3 @@ arrows:
   - label: "ranging_handle_rx()\nmeas_table_deserialize()"
     from: ext.bottom
     to: a4.bottom
-
-  - label: "uart_puts() / uart_putchar()\nuart_printf()\n(send_device_list_uart,\nsend_table_uart)"
-    from: ext.bottom
-    to: a5.bottom

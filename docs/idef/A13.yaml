@@ -1,4 +1,9 @@
 # IDEF0 — Декомпозиция A3 «Конфигурирование сети»
+# Внешние стрелки (ICOM) = стрелки блока A3 в A1.yaml:
+#   Input:    «Список устройств (seq_id, MAC, тип)»         (a2 → a3, здесь ext.left)
+#   Output:   «Откалиброванные межанкерные дистанции»        (a3 → a4, здесь ext.right)
+#   Control:  «UWB протокол (IEEE 802.15.4)»                 (ext.top → a3.top)
+#   Mechanism: «DW1000 UWB трансивер»                        (ext.bottom → a3.bottom)
 
 diagram:
   name: "Конфигурирование сети — A13"
@@ -9,26 +14,46 @@ diagram:
 activities:
 
   - id: a1
-    name: "Выбор измеряющего\nузла"
+    name: "Выбор измеряющего\nузла и рассылка\nCONFIG_START"
 
   - id: a2
-    name: "Считывание\nтемпературы"
+    name: "Считывание\nтемпературы узла"
 
   - id: a3
-    name: "Измерение дистанций\nSS-TWR (к каждому якорю)"
+    name: "Измерение дистанций\nSS-TWR ко всем якорям"
 
   - id: a4
-    name: "Приём и хранение\nтаблицы измерений"
+    name: "Приём и сохранение\nтаблицы измерений"
 
 arrows:
 
-  # ── Inputs ───────────────────────────────────────────────────────────────
+  # ── Inputs (= «Список устройств» из A1) ──────────────────────────────────
 
   - label: "Список устройств\n(seq_id, MAC, тип)"
     from: ext.left
     to: a1.left
 
-  - label: "Команда CONFIG_START\n(мастер → текущий узел)"
+  # ── Outputs (= «Откалиброванные межанкерные дистанции» из A1) ────────────
+
+  - label: "Откалиброванные\nмежанкерные дистанции"
+    from: a4.right
+    to: ext.right
+
+  # ── Controls (= «UWB протокол» из A1) ────────────────────────────────────
+
+  - label: "UWB протокол\n(IEEE 802.15.4)"
+    from: ext.top
+    to: [a1.top, a3.top]
+
+  # ── Mechanisms (= «DW1000 UWB трансивер» из A1) ──────────────────────────
+
+  - label: "DW1000 UWB трансивер\nss_twr_measure_distance()\ntwr_calc_distance()"
+    from: ext.bottom
+    to: a3.bottom
+
+  # ── Внутренние стрелки ────────────────────────────────────────────────────
+
+  - label: "Команда CONFIG_START\n(мастер → текущий узел\nпо UWB)"
     from: a1.right
     to: a2.left
 
@@ -36,17 +61,11 @@ arrows:
     from: a2.right
     to: a3.left
 
-  - label: "Пары дистанций\n(from_seq_id, to_seq_id,\ndistance_mm)"
+  - label: "Строки дистанций\n(from_id, to_id,\ndistance_mm, temp_c)"
     from: a3.right
     to: a4.left
 
-  - label: "Откалиброванная\nтаблица дистанций"
-    from: a4.right
-    to: ext.right
-
-  # ── Controls ─────────────────────────────────────────────────────────────
-
-  - label: "Порядок обхода\nузлов (итерация по списку)"
+  - label: "Порядок обхода узлов\n(итерация по списку)"
     from: ext.top
     to: a1.top
 
@@ -58,8 +77,6 @@ arrows:
     from: ext.top
     to: a3.top
 
-  # ── Mechanisms ───────────────────────────────────────────────────────────
-
   - label: "net_send_to_16bit()\n(CMD_CONFIG_START/STOP)"
     from: ext.bottom
     to: a1.bottom
@@ -67,10 +84,6 @@ arrows:
   - label: "ss_twr_read_temperature()\n(dwt_readtempvbat +\ndwt_geticreftemp)"
     from: ext.bottom
     to: a2.bottom
-
-  - label: "ss_twr_measure_distance()\n(SS-TWR + carrier integrator\n+ temp. коррекция)"
-    from: ext.bottom
-    to: a3.bottom
 
   - label: "meas_table_deserialize()\nnet_device_update_distance()"
     from: ext.bottom

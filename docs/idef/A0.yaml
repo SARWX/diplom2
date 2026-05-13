@@ -14,31 +14,35 @@ arrows:
 
   # ── Inputs ───────────────────────────────────────────────────────────────
 
-  - label: "Питание и\nаппаратная конфигурация\n(Part ID, OTP калибровка)"
+  - label: "Питание и аппаратная\nконфигурация"
     from: ext.left
     to: a0.left
 
-  - label: "UART команды хоста\n(INITIALIZE / RANGING_START /\nSTOP / SET_ANT_DLY / ...)"
+  - label: "UART команды хоста"
     from: ext.left
     to: a0.left
 
   # ── Outputs ──────────────────────────────────────────────────────────────
 
-  - label: "Данные дистанций\n(бинарные пакеты meas_table)\nчерез UART на хост"
+  - label: "Данные дистанций\n(бинарные пакеты meas_table)"
     from: a0.right
     to: ext.right
 
-  - label: "Статус системы\n(OK / ERR / device list)\nчерез UART на хост"
+  - label: "Статус системы\n(OK / ERR / device list)"
     from: a0.right
     to: ext.right
 
   # ── Controls ─────────────────────────────────────────────────────────────
 
-  - label: "Роль устройства\n(MAIN_ANCHOR / ANCHOR / TAG)\nзакодирована в Part ID"
+  - label: "Роль устройства\n(MAIN_ANCHOR / ANCHOR / TAG)"
     from: ext.top
     to: a0.top
 
-  - label: "UWB стандарт\n(IEEE 802.15.4 + SS-TWR)"
+  - label: "UWB протокол\n(IEEE 802.15.4 + SS-TWR)"
+    from: ext.top
+    to: a0.top
+
+  - label: "Параметры калибровки\n(SET_ANT_DLY / SET_TEMP_COEF)"
     from: ext.top
     to: a0.top
 
@@ -48,6 +52,6 @@ arrows:
     from: ext.bottom
     to: a0.bottom
 
-  - label: "DW1000 UWB трансивер\n(радиоканал 2, PRF 64 МГц)"
+  - label: "DW1000 UWB трансивер"
     from: ext.bottom
     to: a0.bottom

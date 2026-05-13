@@ -1,4 +1,10 @@
 # IDEF0 — Декомпозиция A4 «Дальнометрия SS-TWR»
+# Внешние стрелки (ICOM) = стрелки блока A4 в A1.yaml:
+#   Input:    «Откалиброванные межанкерные дистанции»  (a3 → a4, здесь ext.left)
+#   Output:   «Данные дистанций (meas_table rows)»     (a4 → a5, здесь ext.right)
+#   Control:  «UWB протокол (IEEE 802.15.4)»            (ext.top → a4.top)
+#             «Параметры калибровки (SET_ANT_DLY / SET_TEMP_COEF)»
+#   Mechanism: «DW1000 UWB трансивер», «SS-TWR стек»   (ext.bottom → a4.bottom)
 
 diagram:
   name: "Дальнометрия SS-TWR — A14"
@@ -12,81 +18,86 @@ activities:
     name: "Передача POLL-кадра\n(инициатор)"
 
   - id: a2
-    name: "Приём и обработка\nPOLL (ответчик)"
+    name: "Приём POLL и\nформирование ответа\n(ответчик, ISR)"
 
   - id: a3
-    name: "Передача RESPONSE-кадра\n(ответчик, delayed TX)"
+    name: "Извлечение меток\nвремени и вычисление\nсырой дистанции"
 
   - id: a4
-    name: "Извлечение меток времени\nи вычисление дистанции"
-
-  - id: a5
-    name: "Температурная и\nчастотная коррекция"
+    name: "Коррекция:\nчастотная и\nтемпературная"
 
 arrows:
 
-  # ── Inputs ───────────────────────────────────────────────────────────────
+  # ── Inputs (= «Откалиброванные межанкерные дистанции» из A1) ─────────────
 
-  - label: "Откалиброванная сеть\n(список якорей)"
+  - label: "Откалиброванные\nмежанкерные дистанции\n(список якорей)"
     from: ext.left
     to: a1.left
+
+  # ── Outputs (= «Данные дистанций (meas_table rows)» из A1) ───────────────
+
+  - label: "Данные дистанций\n(meas_table rows)"
+    from: a4.right
+    to: ext.right
+
+  # ── Controls (= «UWB протокол», «Параметры калибровки» из A1) ────────────
+
+  - label: "UWB протокол\n(IEEE 802.15.4)"
+    from: ext.top
+    to: [a1.top, a2.top]
+
+  - label: "Параметры калибровки\n(антенные задержки\nTX_ANT_DLY / RX_ANT_DLY)"
+    from: ext.top
+    to: [a1.top, a2.top]
+
+  - label: "Параметры калибровки\n(температурный коэффициент K,\nT_ref = 23 °C)"
+    from: ext.top
+    to: a4.top
+
+  # ── Mechanisms (= «DW1000 UWB трансивер», «SS-TWR стек» из A1) ───────────
+
+  - label: "DW1000 UWB трансивер\ndwt_starttx(DWT_START_TX_IMMEDIATE\n| DWT_RESPONSE_EXPECTED)"
+    from: ext.bottom
+    to: a1.bottom
+
+  - label: "SS-TWR стек\nss_twr_isr()\n(RX прерывание DW1000)"
+    from: ext.bottom
+    to: a2.bottom
+
+  - label: "SS-TWR стек\ntwr_calc_distance()\n(RTD формула)"
+    from: ext.bottom
+    to: a3.bottom
+
+  - label: "SS-TWR стек\nss_twr_read_temperature()\nss_twr_set_temp_coef()"
+    from: ext.bottom
+    to: a4.bottom
+
+  # ── Внутренние стрелки ────────────────────────────────────────────────────
 
   - label: "POLL-кадр по эфиру\n(функц. код 0xE0)"
     from: a1.right
     to: a2.left
 
-  - label: "RESPONSE-кадр\n(poll_rx_ts, resp_tx_ts_est)"
-    from: a3.right
-    to: a4.left
+  - label: "RESPONSE-кадр\n(poll_rx_ts, resp_tx_ts_est)\nпо эфиру"
+    from: a2.right
+    to: a3.left
 
-  - label: "Метки времени DW1000\n(poll_tx_ts, resp_rx_ts)"
+  - label: "Метки времени TX\n(poll_tx_ts, resp_rx_ts)\nиз DW1000 регистров"
     from: a1.right
-    to: a4.left
+    to: a3.left
 
   - label: "Сырое расстояние (м)"
-    from: a4.right
-    to: a5.left
-
-  - label: "Скорректированные\nдистанции (meas_table rows)"
-    from: a5.right
-    to: ext.right
-
-  # ── Controls ─────────────────────────────────────────────────────────────
-
-  - label: "Антенные задержки\nTX_ANT_DLY / RX_ANT_DLY\n(SET_ANT_DLY)"
-    from: ext.top
-    to: [a1.top, a3.top]
+    from: a3.right
+    to: a4.left
 
   - label: "RESP_RX_TIMEOUT = 5000 мкс\nMAIN_TX_TIMEOUT = 10 мс"
     from: ext.top
     to: a1.top
 
-  - label: "Температурный коэффициент K\n(SET_TEMP_COEF)\nT_ref = 23 °C"
-    from: ext.top
-    to: a5.top
-
-  - label: "POLL_RX_TO_RESP_TX_DLY\n(задержка ответа, мкс)"
+  - label: "POLL_RX_TO_RESP_TX_DLY\n(задержка ответа, мкс)\ndwt_setdelayedtrxtime()"
     from: ext.top
     to: a2.top
 
-  # ── Mechanisms ───────────────────────────────────────────────────────────
-
-  - label: "dwt_writetxdata()\ndwt_starttx(DWT_START_TX_IMMEDIATE\n| DWT_RESPONSE_EXPECTED)"
-    from: ext.bottom
-    to: a1.bottom
-
-  - label: "ss_twr_isr()\n(RX прерывание DW1000)"
-    from: ext.bottom
-    to: a2.bottom
-
-  - label: "dwt_setdelayedtrxtime()\ndwt_starttx(DWT_START_TX_DELAYED)"
+  - label: "dwt_readcarrierintegrator()\nFREQ_OFFSET_MULTIPLIER\nHERTZ_TO_PPM_MULTIPLIER"
     from: ext.bottom
     to: a3.bottom
-
-  - label: "twr_calc_distance()\n(RTD формула + carrier integrator\nFREQ_OFFSET_MULTIPLIER)"
-    from: ext.bottom
-    to: a4.bottom
-
-  - label: "ss_twr_read_temperature()\nss_twr_set_temp_coef()\nss_twr_set_ant_dly()"
-    from: ext.bottom
-    to: a5.bottom
