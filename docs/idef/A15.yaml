@@ -1,11 +1,9 @@
 # IDEF0 — Декомпозиция A5 «Обработка команд и вывод данных»
-# Внешние стрелки (ICOM) = стрелки блока A5 в A1.yaml:
-#   Input:    «UART команды хоста»                        (ext.left → a5.left)
-#             «Данные дистанций (meas_table rows)»         (a4 → a5, здесь ext.left)
-#   Output:   «Данные дистанций (бинарные пакеты)»         (a5 → ext.right)
-#             «Статус системы (OK / ERR / device list)»    (a5 → ext.right)
-#   Control:  «UART команды хоста»                        (ext.top → a5.top)
-#   Mechanism: «UART драйвер»                              (ext.bottom → a5.bottom)
+# ICOM = стрелки блока a5 из A1.yaml:
+#   Input:    «UART команды хоста», «Данные дистанций (meas_table rows)»
+#   Output:   «Данные дистанций (бинарные пакеты meas_table)», «Статус системы»
+#   Control:  «UART команды хоста»
+#   Mechanism: «STM32F103C8», «UART драйвер»
 
 diagram:
   name: "Обработка команд и вывод данных — A15"
@@ -32,41 +30,41 @@ activities:
 
 arrows:
 
-  # ── Inputs (= «UART команды хоста», «Данные дистанций» из A1) ────────────
+  # ── Inputs ────────────────────────────────────────────────────────────────
 
-  - label: "UART команды хоста\n(ASCII строка, \\r\\n)"
+  - label: "UART команды хоста"
     from: ext.left
     to: a1.left
 
-  - label: "Данные дистанций\n(meas_table rows от TAG\nчерез UWB → мастер)"
+  - label: "Данные дистанций\n(meas_table rows)"
     from: ext.left
     to: a4.left
 
-  # ── Outputs (= «Данные дистанций», «Статус системы» из A1) ───────────────
+  # ── Outputs ───────────────────────────────────────────────────────────────
 
-  - label: "Данные дистанций\n(бинарные пакеты meas_table\nчерез UART на хост)"
+  - label: "Данные дистанций\n(бинарные пакеты meas_table)"
     from: a5.right
     to: ext.right
 
-  - label: "Статус системы\n(OK / ERR / device list\nчерез UART на хост)"
+  - label: "Статус системы\n(OK / ERR / device list)"
     from: a5.right
     to: ext.right
 
-  # ── Controls (= «UART команды хоста» из A1) ──────────────────────────────
+  # ── Controls ──────────────────────────────────────────────────────────────
 
-  - label: "UART команды хоста\n(INITIALIZE / RANGING_START /\nSTOP / SET_ANT_DLY / ...)"
+  - label: "UART команды хоста"
     from: ext.top
-    to: a1.top
+    to: [a1.top, a2.top]
 
-  # ── Mechanisms (= «UART драйвер» из A1) ──────────────────────────────────
+  # ── Mechanisms ────────────────────────────────────────────────────────────
 
-  - label: "UART драйвер\nuart_readline_idle()\ncmd_parse(), cmd_table[]"
+  - label: "STM32F103C8\n(CPU, UART, SPI, GPIO)"
     from: ext.bottom
-    to: a1.bottom
+    to: [a1.bottom, a5.bottom]
 
-  - label: "UART драйвер\nuart_puts() / uart_putchar()\nsend_device_list_uart()\nsend_table_uart()"
+  - label: "UART драйвер"
     from: ext.bottom
-    to: a5.bottom
+    to: [a1.bottom, a5.bottom]
 
   # ── Внутренние стрелки ────────────────────────────────────────────────────
 
@@ -85,23 +83,3 @@ arrows:
   - label: "Бинарные пакеты\ndistance для вывода"
     from: a4.right
     to: a5.left
-
-  - label: "Протокол команд\n(таблица cmd_table[],\nпризнак initialized)"
-    from: ext.top
-    to: a2.top
-
-  - label: "Флаг DEBUG_ON/OFF"
-    from: ext.top
-    to: a5.top
-
-  - label: "process_command()\nhandle_initialize()\nhandle_ranging_start() и др."
-    from: ext.bottom
-    to: a2.bottom
-
-  - label: "send_net_cmd()\nnet_device_find_by_seq()\nnet_send_to_16bit()"
-    from: ext.bottom
-    to: a3.bottom
-
-  - label: "ranging_handle_rx()\nmeas_table_deserialize()"
-    from: ext.bottom
-    to: a4.bottom

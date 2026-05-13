@@ -1,9 +1,9 @@
 # IDEF0 — Декомпозиция A1 «Инициализация системы»
-# Внешние стрелки (ICOM) = стрелки блока A1 в A1.yaml:
-#   Input:    «Питание и аппаратная конфигурация»  (ext.left → a1.left)
-#   Output:   «Инициализированная аппаратная среда» (a1.right → a2.left → здесь ext.right)
-#   Control:  «Роль устройства»                     (ext.top → a1.top)
-#   Mechanism: «STM32F103C8», «DW1000 UWB трансивер» (ext.bottom → a1.bottom)
+# ICOM = стрелки блока a1 из A1.yaml:
+#   Input:    «Питание и аппаратная конфигурация»
+#   Output:   «Инициализированная аппаратная среда»
+#   Control:  «Роль устройства»
+#   Mechanism: «STM32F103C8», «DW1000 UWB трансивер»
 
 diagram:
   name: "Инициализация системы — A11"
@@ -27,31 +27,31 @@ activities:
 
 arrows:
 
-  # ── Inputs (= «Питание и аппаратная конфигурация» из A1) ─────────────────
+  # ── Inputs ────────────────────────────────────────────────────────────────
 
   - label: "Питание и аппаратная\nконфигурация"
     from: ext.left
     to: a1.left
 
-  # ── Outputs (= «Инициализированная аппаратная среда» из A1) ──────────────
+  # ── Outputs ───────────────────────────────────────────────────────────────
 
   - label: "Инициализированная\nаппаратная среда"
     from: a4.right
     to: ext.right
 
-  # ── Controls (= «Роль устройства» из A1) ─────────────────────────────────
+  # ── Controls ──────────────────────────────────────────────────────────────
 
-  - label: "Роль устройства\n(таблица Part ID → тип)"
+  - label: "Роль устройства\n(MAIN_ANCHOR / ANCHOR / TAG)"
     from: ext.top
     to: a3.top
 
-  # ── Mechanisms (= «STM32F103C8», «DW1000 UWB трансивер» из A1) ───────────
+  # ── Mechanisms ────────────────────────────────────────────────────────────
 
-  - label: "STM32F103C8\n(RCC, GPIO, USART, SPI)\nperipherals_init, uart_init"
+  - label: "STM32F103C8\n(CPU, UART, SPI, GPIO)"
     from: ext.bottom
-    to: a1.bottom
+    to: [a1.bottom, a3.bottom, a4.bottom]
 
-  - label: "DW1000 UWB трансивер\ndwt_initialise (OTP_TMP, OTP_LID,\nOTP_PID, OTP_BAT)"
+  - label: "DW1000 UWB трансивер"
     from: ext.bottom
     to: a2.bottom
 
@@ -68,19 +68,3 @@ arrows:
   - label: "EUI-64 и роль\nустройства (тип)"
     from: a3.right
     to: a4.left
-
-  - label: "Параметры UWB\n(канал 2, PRF 64 МГц,\n6.8 Мбит/с, преамбула 128)"
-    from: ext.top
-    to: a2.top
-
-  - label: "PAN ID, режим\nфильтрации кадров"
-    from: ext.top
-    to: a4.top
-
-  - label: "device_register()\ndevice_init_from_hardware()"
-    from: ext.bottom
-    to: a3.bottom
-
-  - label: "net_init()\n(dwt_setpanid, dwt_seteui,\ndwt_setaddress16)"
-    from: ext.bottom
-    to: a4.bottom

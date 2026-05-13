@@ -1,5 +1,4 @@
 # IDEF0 — Уровень A-0 (контекстная диаграмма, один блок)
-# Описывает систему как единое целое
 
 diagram:
   name: "UWB система позиционирования — A-0"
@@ -12,7 +11,7 @@ activities:
 
 arrows:
 
-  # ── Inputs ───────────────────────────────────────────────────────────────
+  # ── Inputs ────────────────────────────────────────────────────────────────
 
   - label: "Питание и аппаратная\nконфигурация"
     from: ext.left
@@ -22,7 +21,7 @@ arrows:
     from: ext.left
     to: a0.left
 
-  # ── Outputs ──────────────────────────────────────────────────────────────
+  # ── Outputs ───────────────────────────────────────────────────────────────
 
   - label: "Данные дистанций\n(бинарные пакеты meas_table)"
     from: a0.right
@@ -32,7 +31,7 @@ arrows:
     from: a0.right
     to: ext.right
 
-  # ── Controls ─────────────────────────────────────────────────────────────
+  # ── Controls ──────────────────────────────────────────────────────────────
 
   - label: "Роль устройства\n(MAIN_ANCHOR / ANCHOR / TAG)"
     from: ext.top
@@ -46,12 +45,28 @@ arrows:
     from: ext.top
     to: a0.top
 
-  # ── Mechanisms ───────────────────────────────────────────────────────────
+  - label: "UART команды хоста"
+    from: ext.top
+    to: a0.top
+
+  # ── Mechanisms ────────────────────────────────────────────────────────────
 
   - label: "STM32F103C8\n(CPU, UART, SPI, GPIO)"
     from: ext.bottom
     to: a0.bottom
 
   - label: "DW1000 UWB трансивер"
+    from: ext.bottom
+    to: a0.bottom
+
+  - label: "MAC уровень\n(IEEE 802.15.4 стек)"
+    from: ext.bottom
+    to: a0.bottom
+
+  - label: "SS-TWR стек"
+    from: ext.bottom
+    to: a0.bottom
+
+  - label: "UART драйвер"
     from: ext.bottom
     to: a0.bottom

@@ -1,9 +1,9 @@
 # IDEF0 — Декомпозиция A3 «Конфигурирование сети»
-# Внешние стрелки (ICOM) = стрелки блока A3 в A1.yaml:
-#   Input:    «Список устройств (seq_id, MAC, тип)»         (a2 → a3, здесь ext.left)
-#   Output:   «Откалиброванные межанкерные дистанции»        (a3 → a4, здесь ext.right)
-#   Control:  «UWB протокол (IEEE 802.15.4)»                 (ext.top → a3.top)
-#   Mechanism: «DW1000 UWB трансивер»                        (ext.bottom → a3.bottom)
+# ICOM = стрелки блока a3 из A1.yaml:
+#   Input:    «Список устройств (seq_id, MAC, тип)»
+#   Output:   «Откалиброванные межанкерные дистанции»
+#   Control:  «UWB протокол»
+#   Mechanism: «DW1000 UWB трансивер», «MAC уровень», «SS-TWR стек»
 
 diagram:
   name: "Конфигурирование сети — A13"
@@ -27,64 +27,48 @@ activities:
 
 arrows:
 
-  # ── Inputs (= «Список устройств» из A1) ──────────────────────────────────
+  # ── Inputs ────────────────────────────────────────────────────────────────
 
   - label: "Список устройств\n(seq_id, MAC, тип)"
     from: ext.left
     to: a1.left
 
-  # ── Outputs (= «Откалиброванные межанкерные дистанции» из A1) ────────────
+  # ── Outputs ───────────────────────────────────────────────────────────────
 
   - label: "Откалиброванные\nмежанкерные дистанции"
     from: a4.right
     to: ext.right
 
-  # ── Controls (= «UWB протокол» из A1) ────────────────────────────────────
+  # ── Controls ──────────────────────────────────────────────────────────────
 
-  - label: "UWB протокол\n(IEEE 802.15.4)"
+  - label: "UWB протокол\n(IEEE 802.15.4 + SS-TWR)"
     from: ext.top
     to: [a1.top, a3.top]
 
-  # ── Mechanisms (= «DW1000 UWB трансивер» из A1) ──────────────────────────
+  # ── Mechanisms ────────────────────────────────────────────────────────────
 
-  - label: "DW1000 UWB трансивер\nss_twr_measure_distance()\ntwr_calc_distance()"
+  - label: "DW1000 UWB трансивер"
+    from: ext.bottom
+    to: a2.bottom
+
+  - label: "MAC уровень\n(IEEE 802.15.4 стек)"
+    from: ext.bottom
+    to: [a1.bottom, a4.bottom]
+
+  - label: "SS-TWR стек"
     from: ext.bottom
     to: a3.bottom
 
   # ── Внутренние стрелки ────────────────────────────────────────────────────
 
-  - label: "Команда CONFIG_START\n(мастер → текущий узел\nпо UWB)"
+  - label: "Команда CONFIG_START\n(мастер → текущий узел)"
     from: a1.right
     to: a2.left
 
-  - label: "Температура узла (°C)\n(из DW1000 OTP калибровки)"
+  - label: "Температура узла (°C)"
     from: a2.right
     to: a3.left
 
   - label: "Строки дистанций\n(from_id, to_id,\ndistance_mm, temp_c)"
     from: a3.right
     to: a4.left
-
-  - label: "Порядок обхода узлов\n(итерация по списку)"
-    from: ext.top
-    to: a1.top
-
-  - label: "CONFIG_RETRY_MAX (3)\nCONFIG_WAIT_MS (2000)"
-    from: ext.top
-    to: a4.top
-
-  - label: "T_ref = 23 °C\n(база для коррекции)"
-    from: ext.top
-    to: a3.top
-
-  - label: "net_send_to_16bit()\n(CMD_CONFIG_START/STOP)"
-    from: ext.bottom
-    to: a1.bottom
-
-  - label: "ss_twr_read_temperature()\n(dwt_readtempvbat +\ndwt_geticreftemp)"
-    from: ext.bottom
-    to: a2.bottom
-
-  - label: "meas_table_deserialize()\nnet_device_update_distance()"
-    from: ext.bottom
-    to: a4.bottom
