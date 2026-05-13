@@ -1,0 +1,98 @@
+# IDEF0 — Декомпозиция A5 «Обработка команд и вывод данных»
+
+diagram:
+  name: "Обработка команд и вывод данных — A15"
+  node: "A15"
+  parent: "A1"
+  title: "Декомпозиция: UART-интерфейс мастер-якоря"
+
+activities:
+
+  - id: a1
+    name: "Приём и разбор\nUART-команды"
+
+  - id: a2
+    name: "Диспетчеризация\nкоманды"
+
+  - id: a3
+    name: "Пересылка сетевых\nкоманд (форвардинг)"
+
+  - id: a4
+    name: "Приём потока\nдальнометрии"
+
+  - id: a5
+    name: "Формирование и\nотправка ответа хосту"
+
+arrows:
+
+  # ── Inputs ───────────────────────────────────────────────────────────────
+
+  - label: "Строка UART от хоста\n(ASCII, \\r\\n)"
+    from: ext.left
+    to: a1.left
+
+  - label: "Распознанная команда\n(CMD + аргументы)"
+    from: a1.right
+    to: a2.left
+
+  - label: "Результат выполнения\n(OK / ERR / данные)"
+    from: a2.right
+    to: a5.left
+
+  - label: "Параметры для узла\n(seq_id, tx_dly/rx_dly/k)"
+    from: a2.right
+    to: a3.left
+
+  - label: "Бинарные пакеты\ndistance (meas_table)\nот TAG по UWB"
+    from: ext.left
+    to: a4.left
+
+  - label: "Данные дистанций\nдля вывода"
+    from: a4.right
+    to: a5.left
+
+  # ── Outputs ──────────────────────────────────────────────────────────────
+
+  - label: "OK / ERR / UNK \\r\\n\nбинарные пакеты через UART"
+    from: a5.right
+    to: ext.right
+
+  - label: "Сетевые команды\n(SET_ANT_DLY / SET_TEMP_COEF)\nчерез UWB на якоря"
+    from: a3.right
+    to: ext.right
+
+  # ── Controls ─────────────────────────────────────────────────────────────
+
+  - label: "Протокол команд\n(LOC_POS_SYS\\r\\n → LPS\\r\\n)\nтаблица cmd_table[]"
+    from: ext.top
+    to: a1.top
+
+  - label: "Признак инициализации\n(initialized flag)"
+    from: ext.top
+    to: a2.top
+
+  - label: "Флаг DEBUG_ON/OFF\n(verbose UART вывод)"
+    from: ext.top
+    to: a5.top
+
+  # ── Mechanisms ───────────────────────────────────────────────────────────
+
+  - label: "uart_readline_idle()\ncmd_parse()\n(cmd_table, strcmp)"
+    from: ext.bottom
+    to: a1.bottom
+
+  - label: "process_command()\nhandle_initialize()\nhandle_ranging_start() и др."
+    from: ext.bottom
+    to: a2.bottom
+
+  - label: "send_net_cmd()\nnet_device_find_by_seq()\nnet_send_to_16bit()"
+    from: ext.bottom
+    to: a3.bottom
+
+  - label: "ranging_handle_rx()\nmeas_table_deserialize()"
+    from: ext.bottom
+    to: a4.bottom
+
+  - label: "uart_puts() / uart_putchar()\nuart_printf()\n(send_device_list_uart,\nsend_table_uart)"
+    from: ext.bottom
+    to: a5.bottom

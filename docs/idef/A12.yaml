@@ -1,0 +1,77 @@
+# IDEF0 — Декомпозиция A2 «Обнаружение устройств»
+
+diagram:
+  name: "Обнаружение устройств — A12"
+  node: "A12"
+  parent: "A1"
+  title: "Декомпозиция: энумерация узлов сети"
+
+activities:
+
+  - id: a1
+    name: "Широковещательный\nзапрос DISCOVER"
+
+  - id: a2
+    name: "Сбор откликов\nузлов"
+
+  - id: a3
+    name: "Рассылка\nSYNC_LIST"
+
+  - id: a4
+    name: "Подтверждение\nрегистрации"
+
+arrows:
+
+  # ── Inputs ───────────────────────────────────────────────────────────────
+
+  - label: "Инициализированная\nаппаратная среда"
+    from: ext.left
+    to: a1.left
+
+  - label: "Ответы устройств\n(«A» — anchor, «T» — tag)\nс EUI-64 и адресом"
+    from: ext.left
+    to: a2.left
+
+  - label: "Накопленный список\n(seq_id, MAC, тип)"
+    from: a2.right
+    to: a3.left
+
+  - label: "CMD_OK от каждого\nустройства"
+    from: ext.left
+    to: a4.left
+
+  - label: "Подтверждённый\nсписок устройств"
+    from: a4.right
+    to: ext.right
+
+  # ── Controls ─────────────────────────────────────────────────────────────
+
+  - label: "Таймауты\n(ENUM_LISTEN_MS,\nSYNC_WAIT_MS)"
+    from: ext.top
+    to: [a2.top, a4.top]
+
+  - label: "ENUM_RETRY_MAX\n(число попыток)"
+    from: ext.top
+    to: a1.top
+
+  - label: "Дедупликация\nsync_ok_senders[]"
+    from: ext.top
+    to: a4.top
+
+  # ── Mechanisms ───────────────────────────────────────────────────────────
+
+  - label: "net_send_broadcast()\n(CMD_DISCOVER)"
+    from: ext.bottom
+    to: a1.bottom
+
+  - label: "net_rx_poll() + кольцевой\nбуфер ISR (rx_rbuf)"
+    from: ext.bottom
+    to: [a2.bottom, a4.bottom]
+
+  - label: "net_device_create()\nnet_device_add()"
+    from: ext.bottom
+    to: a2.bottom
+
+  - label: "net_send_to_16bit()\n(SYNC_LIST → каждому)"
+    from: ext.bottom
+    to: a3.bottom

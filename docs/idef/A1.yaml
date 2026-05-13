@@ -1,0 +1,108 @@
+# IDEF0 — Уровень A1 (декомпозиция A-0)
+# Пять основных функций системы
+
+diagram:
+  name: "UWB система позиционирования — A1"
+  node: "A1"
+  parent: "A-0"
+  title: "Декомпозиция: основные функции"
+
+activities:
+
+  - id: a1
+    name: "Инициализация\nсистемы"
+    ref: A11.yaml
+
+  - id: a2
+    name: "Обнаружение\nустройств"
+    ref: A12.yaml
+
+  - id: a3
+    name: "Конфигурирование\nсети"
+    ref: A13.yaml
+
+  - id: a4
+    name: "Дальнометрия\nSS-TWR"
+    ref: A14.yaml
+
+  - id: a5
+    name: "Обработка команд\nи вывод данных"
+    ref: A15.yaml
+
+arrows:
+
+  # ── Inputs ───────────────────────────────────────────────────────────────
+
+  - label: "Питание и аппаратная\nконфигурация (Part ID, OTP)"
+    from: ext.left
+    to: a1.left
+
+  - label: "UART команды хоста\n(INITIALIZE / RANGING_START /\nSTOP / SET_ANT_DLY / ...)"
+    from: ext.left
+    to: a5.left
+
+  - label: "Инициализированная\nаппаратная среда"
+    from: a1.right
+    to: a2.left
+
+  - label: "Список устройств\n(seq_id, MAC, тип)"
+    from: a2.right
+    to: a3.left
+
+  - label: "Откалиброванные\nмежанкерные дистанции"
+    from: a3.right
+    to: a4.left
+
+  - label: "Данные дистанций\n(meas_table rows)"
+    from: a4.right
+    to: a5.left
+
+  # ── Outputs ──────────────────────────────────────────────────────────────
+
+  - label: "Бинарные пакеты\n(device list + meas_table)\nчерез UART на хост"
+    from: a5.right
+    to: ext.right
+
+  - label: "Статус и ответы\n(OK / ERR / GET_STATUS)\nчерез UART на хост"
+    from: a5.right
+    to: ext.right
+
+  # ── Controls ─────────────────────────────────────────────────────────────
+
+  - label: "Роль устройства\n(закодирована в Part ID)"
+    from: ext.top
+    to: [a1.top, a2.top, a4.top]
+
+  - label: "UWB протокол\n(IEEE 802.15.4)"
+    from: ext.top
+    to: [a2.top, a3.top, a4.top]
+
+  - label: "UART команды\n(INITIALIZE / RECONFIGURE /\nRANGING_START / STOP)"
+    from: ext.top
+    to: [a2.top, a5.top]
+
+  - label: "Параметры калибровки\n(SET_ANT_DLY / SET_TEMP_COEF)"
+    from: a5.top
+    to: a4.top
+
+  # ── Mechanisms ───────────────────────────────────────────────────────────
+
+  - label: "STM32F103C8\n(peripherals_init, net_init)"
+    from: ext.bottom
+    to: a1.bottom
+
+  - label: "DW1000 UWB\n(dwt_initialise, dwt_configure)"
+    from: ext.bottom
+    to: [a1.bottom, a3.bottom, a4.bottom]
+
+  - label: "MAC уровень\n(net_send_broadcast,\nenumeration_*)"
+    from: ext.bottom
+    to: a2.bottom
+
+  - label: "SS-TWR стек\n(ss_twr_measure_distance,\ntwr_calc_distance)"
+    from: ext.bottom
+    to: a4.bottom
+
+  - label: "UART драйвер\n(uart_printf, uart_readline)"
+    from: ext.bottom
+    to: a5.bottom

@@ -1,0 +1,77 @@
+# IDEF0 — Декомпозиция A1 «Инициализация системы»
+
+diagram:
+  name: "Инициализация системы — A11"
+  node: "A11"
+  parent: "A1"
+  title: "Декомпозиция: инициализация аппаратуры и сети"
+
+activities:
+
+  - id: a1
+    name: "Инициализация\nпериферии MCU"
+
+  - id: a2
+    name: "Инициализация\nDW1000"
+
+  - id: a3
+    name: "Определение роли\nустройства"
+
+  - id: a4
+    name: "Инициализация\nMAC-уровня"
+
+arrows:
+
+  # ── Inputs ───────────────────────────────────────────────────────────────
+
+  - label: "Питание (VCC)\nи тактирование (HSE)"
+    from: ext.left
+    to: a1.left
+
+  - label: "Конфигурация SPI,\nGPIO (сброс, IRQ, CS)"
+    from: a1.right
+    to: a2.left
+
+  - label: "Part ID из DW1000 OTP"
+    from: a2.right
+    to: a3.left
+
+  - label: "EUI-64 устройства\nи роль (тип)"
+    from: a3.right
+    to: a4.left
+
+  - label: "Инициализированный\nMAC-уровень"
+    from: a4.right
+    to: ext.right
+
+  # ── Controls ─────────────────────────────────────────────────────────────
+
+  - label: "Таблица регистрации\nустройств (Part ID → роль)"
+    from: ext.top
+    to: a3.top
+
+  - label: "Параметры UWB\n(канал 2, PRF 64 МГц,\n6.8 Мбит/с, преамбула 128)"
+    from: ext.top
+    to: a2.top
+
+  - label: "PAN ID, режим\nфильтрации кадров"
+    from: ext.top
+    to: a4.top
+
+  # ── Mechanisms ───────────────────────────────────────────────────────────
+
+  - label: "STM32 RCC, GPIO, USART\n(peripherals_init, uart_init)"
+    from: ext.bottom
+    to: a1.bottom
+
+  - label: "DW1000 SPI API\n(dwt_initialise: OTP_TMP,\nOTP_LID, OTP_PID, OTP_BAT)"
+    from: ext.bottom
+    to: a2.bottom
+
+  - label: "device_register()\ndevice_init_from_hardware()"
+    from: ext.bottom
+    to: a3.bottom
+
+  - label: "net_init()\n(dwt_setpanid, dwt_seteui,\ndwt_setaddress16)"
+    from: ext.bottom
+    to: a4.bottom

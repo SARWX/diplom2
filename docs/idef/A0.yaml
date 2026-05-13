@@ -1,0 +1,53 @@
+# IDEF0 — Уровень A-0 (контекстная диаграмма, один блок)
+# Описывает систему как единое целое
+
+diagram:
+  name: "UWB система позиционирования — A-0"
+  node: "A-0"
+  title: "Определить положение мобильного объекта"
+
+activities:
+  - id: a0
+    name: "Определить\nположение\nмобильного объекта"
+
+arrows:
+
+  # ── Inputs ───────────────────────────────────────────────────────────────
+
+  - label: "Питание и\nаппаратная конфигурация\n(Part ID, OTP калибровка)"
+    from: ext.left
+    to: a0.left
+
+  - label: "UART команды хоста\n(INITIALIZE / RANGING_START /\nSTOP / SET_ANT_DLY / ...)"
+    from: ext.left
+    to: a0.left
+
+  # ── Outputs ──────────────────────────────────────────────────────────────
+
+  - label: "Данные дистанций\n(бинарные пакеты meas_table)\nчерез UART на хост"
+    from: a0.right
+    to: ext.right
+
+  - label: "Статус системы\n(OK / ERR / device list)\nчерез UART на хост"
+    from: a0.right
+    to: ext.right
+
+  # ── Controls ─────────────────────────────────────────────────────────────
+
+  - label: "Роль устройства\n(MAIN_ANCHOR / ANCHOR / TAG)\nзакодирована в Part ID"
+    from: ext.top
+    to: a0.top
+
+  - label: "UWB стандарт\n(IEEE 802.15.4 + SS-TWR)"
+    from: ext.top
+    to: a0.top
+
+  # ── Mechanisms ───────────────────────────────────────────────────────────
+
+  - label: "STM32F103C8\n(CPU, UART, SPI, GPIO)"
+    from: ext.bottom
+    to: a0.bottom
+
+  - label: "DW1000 UWB трансивер\n(радиоканал 2, PRF 64 МГц)"
+    from: ext.bottom
+    to: a0.bottom

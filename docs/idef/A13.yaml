@@ -1,0 +1,77 @@
+# IDEF0 — Декомпозиция A3 «Конфигурирование сети»
+
+diagram:
+  name: "Конфигурирование сети — A13"
+  node: "A13"
+  parent: "A1"
+  title: "Декомпозиция: измерение межанкерных дистанций"
+
+activities:
+
+  - id: a1
+    name: "Выбор измеряющего\nузла"
+
+  - id: a2
+    name: "Считывание\nтемпературы"
+
+  - id: a3
+    name: "Измерение дистанций\nSS-TWR (к каждому якорю)"
+
+  - id: a4
+    name: "Приём и хранение\nтаблицы измерений"
+
+arrows:
+
+  # ── Inputs ───────────────────────────────────────────────────────────────
+
+  - label: "Список устройств\n(seq_id, MAC, тип)"
+    from: ext.left
+    to: a1.left
+
+  - label: "Команда CONFIG_START\n(мастер → текущий узел)"
+    from: a1.right
+    to: a2.left
+
+  - label: "Температура узла (°C)\n(из DW1000 OTP калибровки)"
+    from: a2.right
+    to: a3.left
+
+  - label: "Пары дистанций\n(from_seq_id, to_seq_id,\ndistance_mm)"
+    from: a3.right
+    to: a4.left
+
+  - label: "Откалиброванная\nтаблица дистанций"
+    from: a4.right
+    to: ext.right
+
+  # ── Controls ─────────────────────────────────────────────────────────────
+
+  - label: "Порядок обхода\nузлов (итерация по списку)"
+    from: ext.top
+    to: a1.top
+
+  - label: "CONFIG_RETRY_MAX (3)\nCONFIG_WAIT_MS (2000)"
+    from: ext.top
+    to: a4.top
+
+  - label: "T_ref = 23 °C\n(база для коррекции)"
+    from: ext.top
+    to: a3.top
+
+  # ── Mechanisms ───────────────────────────────────────────────────────────
+
+  - label: "net_send_to_16bit()\n(CMD_CONFIG_START/STOP)"
+    from: ext.bottom
+    to: a1.bottom
+
+  - label: "ss_twr_read_temperature()\n(dwt_readtempvbat +\ndwt_geticreftemp)"
+    from: ext.bottom
+    to: a2.bottom
+
+  - label: "ss_twr_measure_distance()\n(SS-TWR + carrier integrator\n+ temp. коррекция)"
+    from: ext.bottom
+    to: a3.bottom
+
+  - label: "meas_table_deserialize()\nnet_device_update_distance()"
+    from: ext.bottom
+    to: a4.bottom
