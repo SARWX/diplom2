@@ -5,205 +5,53 @@ nodes:
     children:
       - label: "STM32F103C8 (64 КБ Flash, 20 КБ RAM)"
         children:
-          - label: "SPI — интерфейс к DW1000"
-          - label: "UART @ 115200 8N1 — интерфейс к хост-ПК"
-          - label: "GPIO — сброс и IRQ-линия DW1000"
-          - label: "SysTick — системный таймер (portGetTickCount)"
+          - label: "SPI → DW1000, UART @ 115200 → хост, SysTick"
       - label: "UWB-трансивер DW1000"
         children:
-          - label: "Канал 2, PRF 64 МГц, 6.8 Мбит/с, преамбула 128"
-          - label: "Дальнометрия SS-TWR (Single-Sided Two-Way Ranging)"
-          - label: "Встроенный датчик температуры (OTP-калибровка)"
-          - label: "Антенные задержки TX/RX (по умолчанию 16436 ед.)"
-          - label: "Carrier Integrator — компенсация расхождения тактовых частот"
+          - label: "Канал 2, PRF 64 МГц, 6.8 Мбит/с"
+          - label: "Дальнометрия SS-TWR, встроенный датчик температуры"
 
   - label: "Прошивка (user/)"
     children:
-      - label: "Точка входа — main.c"
-        children:
-          - label: "Инициализация периферии (peripherals_init, SPI, UART)"
-          - label: "Инициализация DW1000 (dwt_initialise: OTP_TMP, OTP_LID, OTP_PID, OTP_BAT)"
-          - label: "Таблица регистрации устройств (Part ID → роль + EUI-64 + callbacks)"
-          - label: "Определение роли по Part ID (device_init_from_hardware)"
-          - label: "Инициализация MAC-уровня (net_init: PAN ID, EUI-64, фильтр кадров)"
-          - label: "Главный цикл: вызов device.init_func() и device.main_loop_func()"
-
-      - label: "Роли устройств (user/devices/)"
+      - label: "Роли устройств"
         children:
           - label: "MainAnchor — мастер-якорь"
             children:
-              - label: "main_anchor_init — UART + радио + список устройств"
-              - label: "main_anchor_loop — readline → cmd_parse → process_command"
-              - label: "Обработчики команд"
-                children:
-                  - label: "handle_initialize — энумерация + конфигурация + отправка пакетов на хост"
-                  - label: "handle_reconfigure — повторная конфигурация без энумерации"
-                  - label: "handle_reset — очистка списка устройств"
-                  - label: "handle_get_status — флаг initialized + счётчик устройств"
-                  - label: "handle_ranging_start / handle_ranging_stop — управление тегом"
-                  - label: "handle_set_ant_dly — антенные задержки (локально или форвардинг)"
-                  - label: "handle_set_temp_coef — температурный коэффициент (локально или форвардинг)"
-                  - label: "handle_test_ss_twr — одиночный тест дальнометрии"
-                  - label: "handle_debug — включение/выключение debug-вывода"
-              - label: "send_device_list_uart — сериализация DeviceListPacket → UART"
-              - label: "send_table_uart — сериализация MeasTablePacket → UART"
-              - label: "send_net_cmd — форвардинг команды на узел по UWB"
-              - label: "UART-драйвер (uart.c)"
-                children:
-                  - label: "uart_readline_idle — неблокирующее чтение строки с poll-коллбэком"
-                  - label: "uart_printf / uart_dbg — форматированный вывод (целочисленный, без float)"
-                  - label: "uart_dbg_set — управление debug-флагом"
-
-          - label: "Anchor — обычный якорь"
+              - label: "UART readline → cmd_parse → обработчики команд"
+              - label: "Энумерация + конфигурация + отправка пакетов на хост"
+              - label: "Форвардинг SET_ANT_DLY / SET_TEMP_COEF на якоря по UWB"
+          - label: "Anchor — якорь"
             children:
-              - label: "anchor_init — радио + список устройств"
-              - label: "anchor_loop — net_process → anchor_idle"
-              - label: "anchor_idle — обработка сетевых команд"
-                children:
-                  - label: "CMD_DISCOVER → enumeration_handle_message"
-                  - label: "CMD_CONFIG_START → configuration_perform_measurements + send"
-                  - label: "CMD_SET_ANT_DLY → ss_twr_set_ant_dly"
-                  - label: "CMD_SET_TEMP_COEF → ss_twr_set_temp_coef"
-
+              - label: "Участие в энумерации и конфигурации"
+              - label: "Приём и применение калибровочных параметров"
           - label: "Tag — мобильный тег"
             children:
-              - label: "tag_init — радио + список устройств"
-              - label: "tag_loop — net_process → tag_idle"
-              - label: "tag_idle — обработка сетевых команд"
-                children:
-                  - label: "CMD_DISCOVER → enumeration_handle_message"
-                  - label: "CMD_CONFIG_START → configuration_perform_measurements + send"
-                  - label: "CMD_RANGING_START → ranging_handle_message → ranging_run"
+              - label: "Участие в энумерации и конфигурации"
+              - label: "Непрерывная дальнометрия до всех якорей → отправка на мастер"
 
-      - label: "Библиотека (user/my_lib/)"
+      - label: "Библиотека (my_lib/)"
         children:
-          - label: "device_id — регистрация и идентификация устройств"
-            children:
-              - label: "device_registration_t — Part ID, EUI-64, тип, init/loop коллбэки"
-              - label: "device_register / device_init_from_hardware"
-              - label: "curr_dev — указатель на текущее устройство"
+          - label: "net_mac — MAC IEEE 802.15.4: сборка кадров, TX/RX, ISR-коллбэки"
+          - label: "net_devices — реестр узлов: seq_id, тип, MAC, дистанции, температура"
+          - label: "cmd_parser — сопоставление текстовых команд с таблицей"
+          - label: "ss_twr — SS-TWR: инициатор + ответчик (ISR), температура, калибровка"
 
-          - label: "net_mac — MAC-уровень IEEE 802.15.4"
-            children:
-              - label: "net_message_t — src/dst адреса, payload, длина"
-              - label: "net_state_t — режим (IDLE/ENUM/CONFIG/RANGING), кольцевой RX-буфер"
-              - label: "net_send_broadcast / net_send_to_16bit / net_send_to_64bit"
-              - label: "net_rx_poll — выборка кадров из кольцевого буфера (main-loop)"
-              - label: "net_rx_ok_isr / net_rx_to_isr / net_rx_err_isr — коллбэки DW1000 ISR"
-              - label: "net_send_frame_raw — mutex + forcetrxoff + starttx + ожидание TXFRS"
-
-          - label: "net_dispatch — диспетчер входящих кадров"
-            children:
-              - label: "net_radio_init — конфигурация радио + установка коллбэков ISR"
-              - label: "net_process — вызов net_rx_poll + idle-коллбэк устройства"
-
-          - label: "net_devices — реестр UWB-узлов"
-            children:
-              - label: "net_device_t — seq_id, тип, MAC, массив distances[], температура"
-              - label: "net_devices_list_t — связный список устройств"
-              - label: "net_device_create / net_device_add / net_device_find_by_seq"
-              - label: "net_devices_serialize / net_devices_clear"
-              - label: "net_device_update_distance"
-
-          - label: "cmd_parser — разбор текстовых команд"
-            children:
-              - label: "Таблица команд: INITIALIZE, RECONFIGURE, RESET, GET_STATUS,"
-              - label: "  RANGING_START, STOP, DEBUG_ON/OFF, TEST_SS_TWR,"
-              - label: "  SET_ANT_DLY, SET_TEMP_COEF"
-              - label: "cmd_parse_result_t — код команды + строка аргументов"
-              - label: "cmd_parse — сопоставление строки с таблицей"
-
-          - label: "ss_twr — дальнометрия SS-TWR"
-            children:
-              - label: "ss_twr_measure_distance — инициатор: POLL → ожидание RESPONSE → дистанция"
-                children:
-                  - label: "Применение carrier integrator коррекции (FREQ_OFFSET_MULTIPLIER)"
-                  - label: "twr_calc_distance — RTD формула: (rtd_init - rtd_resp*(1+offset)) / 2"
-              - label: "ss_twr_isr / ss_twr_handle_rx_frame — ответчик (ISR-контекст)"
-                children:
-                  - label: "Приём POLL, вычисление resp_tx_time, delayed TX ответа"
-              - label: "ss_twr_read_temperature — dwt_readtempvbat + OTP-калибровка"
-              - label: "ss_twr_set_ant_dly — dwt_settxantennadelay + dwt_setrxantennadelay"
-              - label: "ss_twr_set_temp_coef — установка K (м/°C), по умолчанию 0.0"
-
-          - label: "common — вспомогательные утилиты"
-            children:
-              - label: "rx_rbuf — кольцевой буфер кадров (ISR → main-loop, без блокировок)"
-              - label: "common_rand / common_srand — LCG генератор псевдослучайных чисел"
-
-      - label: "Протоколы (user/protocols/)"
+      - label: "Протоколы (protocols/)"
         children:
-          - label: "enumeration — обнаружение узлов"
-            children:
-              - label: "enumeration_start_master — DISCOVER → сбор откликов → SYNC_LIST → подтверждение"
-              - label: "enumeration_handle_message — обработка на стороне slave-узла"
-              - label: "Параметры: ENUM_RETRY_MAX, ENUM_LISTEN_MS, SYNC_WAIT_MS"
-
-          - label: "configuration — измерение межанкерных дистанций"
-            children:
-              - label: "configuration_start_master — обход узлов, CMD_CONFIG_START/STOP"
-              - label: "configuration_perform_measurements — ss_twr_read_temperature + ss_twr_measure_distance для каждого якоря"
-              - label: "configuration_send_measurements — meas_table_serialize_row → net_send_to_16bit"
-              - label: "Параметры: CONFIG_RETRY_MAX=3, CONFIG_WAIT_MS=2000"
-
-          - label: "ranging — непрерывная дальнометрия тега"
-            children:
-              - label: "ranging_run — цикл: do_ranging_cycle → send_results → check_stop (200 мс)"
-              - label: "do_ranging_cycle — ss_twr_measure_distance ко всем якорям"
-              - label: "send_results — meas_table_serialize_row → net_send_to_16bit → мастер"
-              - label: "ranging_handle_rx — мастер: приём пакета → meas_table_print + forward на UART"
-
-          - label: "meas_table — сериализация таблицы измерений"
-            children:
-              - label: "Формат v2: magic 0xAA 0xBB, version=2, row_count"
-              - label: "MeasurementRow (7 байт): from_seq_id, to_seq_id, distance_mm (int32 LE), temperature_c (int8)"
-              - label: "meas_table_serialize / meas_table_serialize_row / meas_table_deserialize"
-              - label: "meas_table_print — отладочный вывод таблицы через uart_dbg"
+          - label: "enumeration — DISCOVER → сбор откликов → SYNC_LIST → подтверждение"
+          - label: "configuration — мастер обходит узлы, каждый измеряет дистанции SS-TWR и отправляет мастеру"
+          - label: "ranging — тег непрерывно измеряет дистанции и стримит MeasTablePacket мастеру"
+          - label: "meas_table — сериализация / десериализация MeasTablePacket (magic 0xAA 0xBB, v2)"
 
   - label: "UART-протокол (хост ↔ MainAnchor)"
     children:
       - label: "Рукопожатие: LOC_POS_SYS\\r\\n → LPS\\r\\n"
-      - label: "Коды ответов: OK\\r\\n / ERR\\r\\n / UNK\\r\\n"
-      - label: "Команды"
-        children:
-          - label: "INITIALIZE — энумерация + конфигурация → DeviceListPacket + MeasTablePacket"
-          - label: "RECONFIGURE — повторная конфигурация → DeviceListPacket + MeasTablePacket"
-          - label: "RESET — сброс списка устройств"
-          - label: "GET_STATUS → OK <initialized> <device_count>"
-          - label: "SET_ANT_DLY <seq_id> <tx_dly> <rx_dly> — антенные задержки (ед. DW1000)"
-          - label: "SET_TEMP_COEF <seq_id> <k×10⁶> — температурный коэффициент (м/°C)"
-          - label: "RANGING_START — начало потоковой дальнометрии (асинхронные пакеты)"
-          - label: "STOP / RANGING_STOP — остановка дальнометрии → OK\\r\\n"
-          - label: "DEBUG_ON / DEBUG_OFF — человекочитаемый отладочный вывод"
-          - label: "TEST_SS_TWR — одиночный обмен SS-TWR с устройством seq_id=2"
-      - label: "Бинарные пакеты"
-        children:
-          - label: "DeviceListPacket (magic 0xAA 0xCC, v1)"
-            children:
-              - label: "Заголовок 4 байта: magic[2], version, device_count"
-              - label: "DeviceEntry 8 байт: seq_id, device_type, mac[6]"
-              - label: "device_type: 0=NONE, 1=MAIN_ANCHOR, 2=ANCHOR, 3=TAG"
-          - label: "MeasTablePacket (magic 0xAA 0xBB, v2)"
-            children:
-              - label: "Заголовок 4 байта: magic[2], version, row_count"
-              - label: "MeasurementRow 7 байт: from_seq_id, to_seq_id, distance_mm (int32 LE), temperature_c (int8)"
-              - label: "Отрицательное distance_mm — некалиброванное измерение"
+      - label: "Команды: INITIALIZE, RECONFIGURE, RESET, GET_STATUS, RANGING_START, STOP, SET_ANT_DLY, SET_TEMP_COEF, DEBUG_ON/OFF"
+      - label: "DeviceListPacket (0xAA 0xCC) — seq_id, тип, MAC на каждый узел"
+      - label: "MeasTablePacket (0xAA 0xBB) — from/to seq_id, distance_mm (int32), temperature_c (int8)"
 
-  - label: "Алгоритмы измерения и коррекции"
+  - label: "Алгоритмы измерения"
     children:
-      - label: "SS-TWR (Single-Sided Two-Way Ranging)"
-        children:
-          - label: "Инициатор отправляет POLL, засекает poll_tx_ts"
-          - label: "Ответчик (ISR) принимает POLL, засекает poll_rx_ts, отправляет RESPONSE с delayed TX"
-          - label: "Инициатор принимает RESPONSE, засекает resp_rx_ts"
-          - label: "RTD формула: tof = (rtd_init - rtd_resp × (1 + clock_offset)) / 2"
-          - label: "distance = tof × SPEED_OF_LIGHT"
-      - label: "Коррекция расхождения тактовых частот (carrier integrator)"
-        children:
-          - label: "clock_offset = carrier_int × FREQ_OFFSET_MULTIPLIER × HERTZ_TO_PPM_MULTIPLIER / 1e6"
-          - label: "Компенсирует кристаллическую нестабильность инициатора и ответчика"
-      - label: "Температурная коррекция дистанций"
-        children:
-          - label: "distance -= K × (T_measured - 23.0)"
-          - label: "K задаётся командой SET_TEMP_COEF (по умолчанию K=0)"
-          - label: "Температура читается из DW1000 с OTP-калибровкой (dwt_readtempvbat)"
+      - label: "SS-TWR: tof = (rtd_init - rtd_resp × (1 + clock_offset)) / 2"
+      - label: "Коррекция тактовых частот: clock_offset из carrier integrator DW1000"
+      - label: "Температурная коррекция: distance -= K × (T − 23 °C)"
