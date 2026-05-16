@@ -1,0 +1,83 @@
+# UML Component диаграмма — прошивка UWB системы позиционирования
+
+title: "UWB Firmware — Component диаграмма"
+
+packages:
+
+  - id: pkg_roles
+    label: "Device Roles"
+    components:
+      - id: main_anchor
+        label: "MainAnchor"
+      - id: anchor
+        label: "Anchor"
+      - id: tag
+        label: "Tag"
+
+  - id: pkg_protocols
+    label: "Protocols"
+    components:
+      - id: enumeration
+        label: "Enumeration"
+      - id: configuration
+        label: "Configuration"
+      - id: ranging
+        label: "Ranging"
+      - id: meas_table
+        label: "MeasTable"
+
+  - id: pkg_ss_twr
+    label: "Ranging PHY"
+    components:
+      - id: ss_twr
+        label: "SS-TWR"
+
+  - id: pkg_mac
+    label: "Network"
+    components:
+      - id: net_mac
+        label: "NetMAC"
+      - id: net_devices
+        label: "NetDevices"
+      - id: cmd_parser
+        label: "CmdParser"
+
+  - id: pkg_platform
+    label: "Platform"
+    components:
+      - id: dw1000
+        label: "DW1000 Driver"
+      - id: uart
+        label: "UART Driver"
+      - id: hal
+        label: "HAL\n(SPI / GPIO / SysTick)"
+
+dependencies:
+
+  - from: pkg_roles
+    to: pkg_protocols
+    label: "<<use>>"
+
+  - from: pkg_roles
+    to: pkg_mac
+    label: "<<use>>"
+
+  - from: pkg_roles
+    to: pkg_platform
+    label: "<<use>>"
+
+  - from: pkg_protocols
+    to: pkg_ss_twr
+    label: "<<use>>"
+
+  - from: pkg_protocols
+    to: pkg_mac
+    label: "<<use>>"
+
+  - from: pkg_ss_twr
+    to: pkg_platform
+    label: "<<use>>"
+
+  - from: pkg_mac
+    to: pkg_platform
+    label: "<<use>>"
