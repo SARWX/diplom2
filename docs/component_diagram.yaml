@@ -9,6 +9,20 @@ packages:
     components:
       - id: main_anchor
         label: "MainAnchor"
+        subcomponents:
+          - id: cmd_dispatcher
+            label: "Cmd\nDispatcher"
+          - id: network_forwarder
+            label: "Network\nForwarder"
+          - id: host_io
+            label: "Host\nI/O"
+        internal_interfaces:
+          - name: "IHostIO"
+            provided_by: host_io
+            required_by: cmd_dispatcher
+          - name: "IForward"
+            provided_by: network_forwarder
+            required_by: cmd_dispatcher
       - id: anchor
         label: "Anchor"
       - id: tag
@@ -31,12 +45,34 @@ packages:
     components:
       - id: ss_twr
         label: "SS-TWR"
+        subcomponents:
+          - id: initiator
+            label: "Initiator\n(main-loop)"
+          - id: responder
+            label: "Responder\n(ISR)"
+          - id: calib_control
+            label: "Calibration\nControl"
+        internal_interfaces:
+          - name: "ICalib"
+            provided_by: calib_control
+            required_by: [initiator, responder]
 
   - id: pkg_mac
     label: "Network"
     components:
       - id: net_mac
         label: "NetMAC"
+        subcomponents:
+          - id: frame_builder
+            label: "Frame\nBuilder"
+          - id: tx_controller
+            label: "TX\nController"
+          - id: rx_dispatcher
+            label: "RX\nDispatcher"
+        internal_interfaces:
+          - name: "ITx"
+            provided_by: tx_controller
+            required_by: [frame_builder, rx_dispatcher]
       - id: net_devices
         label: "NetDevices"
       - id: cmd_parser
@@ -49,6 +85,13 @@ packages:
         label: "DW1000 Driver"
       - id: uart
         label: "UART Driver"
+        subcomponents:
+          - id: line_reader
+            label: "Line\nReader"
+          - id: formatter
+            label: "Formatter"
+          - id: debug_output
+            label: "Debug\nOutput"
       - id: hal
         label: "HAL\n(SPI / GPIO / SysTick)"
 
