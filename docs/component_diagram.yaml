@@ -1,471 +1,193 @@
-# UML Component диаграмма — прошивка UWB системы позиционирования
-# Нотация:
-#   provided: интерфейс предоставляемый компонентом (lollipop)
-#   required: интерфейс требуемый компонентом (socket)
-#   internal_interfaces: связи между подкомпонентами внутри компонента
-
 title: "UWB Firmware — Component диаграмма"
+cols: 4
 
 components:
 
-  # ── MAIN ANCHOR ────────────────────────────────────────────────────────────
+  # ── РОЛИ УСТРОЙСТВ ──────────────────────────────────────────────────────────
+
   - id: main_anchor
     label: "MainAnchor"
-    provided:
-      - name: "IMainAnchor"
-        operations: ["main_anchor_init()", "main_anchor_loop()"]
-    required:
-      - name: "IEnumeration"
-      - name: "IConfiguration"
-      - name: "IRanging"
-      - name: "INetSend"
-      - name: "INetDevices"
-      - name: "ICmdParser"
-      - name: "IUart"
-      - name: "ISsTwr"
     subcomponents:
       - id: cmd_dispatcher
         label: "CmdDispatcher"
-        note: "uart_readline_idle → cmd_parse → handle_*()"
-        requires: ["IHostIO", "IForward", "IEnumeration", "IConfiguration",
-                   "IRanging", "ISsTwr", "INetSend", "INetDevices"]
-      - id: network_forwarder
-        label: "NetworkForwarder"
-        note: "send_net_cmd → net_device_find_by_seq → net_send_to_16bit"
-        provides: ["IForward"]
-        requires: ["INetDevices", "INetSend"]
       - id: host_io
         label: "HostIO"
-        note: "send_device_list_uart, send_table_uart, reply_ok/err/unk"
-        provides: ["IHostIO"]
-        requires: ["IUart", "IMeasTable", "INetDevices"]
+      - id: net_forwarder
+        label: "NetworkForwarder"
     internal_interfaces:
       - name: "IHostIO"
         provided_by: host_io
-        required_by: cmd_dispatcher
+        required_by: [cmd_dispatcher]
       - name: "IForward"
-        provided_by: network_forwarder
-        required_by: cmd_dispatcher
+        provided_by: net_forwarder
+        required_by: [cmd_dispatcher]
+    port_delegations:
+      - {iface: "IUart",          to: host_io}
+      - {iface: "INetSend",       to: net_forwarder}
+      - {iface: "INetDevices",    to: net_forwarder}
+      - {iface: "ICmdParser",     to: cmd_dispatcher}
+      - {iface: "IEnumeration",   to: cmd_dispatcher}
+      - {iface: "IConfiguration", to: cmd_dispatcher}
+      - {iface: "IRanging",       to: cmd_dispatcher}
+      - {iface: "ISsTwr",         to: cmd_dispatcher}
+      - {iface: "IMeasTable",     to: host_io}
 
-  # ── ANCHOR ─────────────────────────────────────────────────────────────────
   - id: anchor
     label: "Anchor"
-    provided:
-      - name: "IAnchor"
-        operations: ["anchor_init()", "anchor_loop()"]
-    required:
-      - name: "IEnumeration"
-      - name: "IConfiguration"
-      - name: "INetProcess"
-      - name: "ISsTwr"
 
-  # ── TAG ────────────────────────────────────────────────────────────────────
   - id: tag
     label: "Tag"
-    provided:
-      - name: "ITag"
-        operations: ["tag_init()", "tag_loop()"]
-    required:
-      - name: "IEnumeration"
-      - name: "IConfiguration"
-      - name: "IRanging"
-      - name: "INetProcess"
-      - name: "ISsTwr"
 
-  # ── ENUMERATION ────────────────────────────────────────────────────────────
+  # ── ПРОТОКОЛЫ ──────────────────────────────────────────────────────────────
+
   - id: enumeration
     label: "Enumeration"
-    provided:
-      - name: "IEnumeration"
-        operations:
-          - "enumeration_start_master(devices)"
-          - "enumeration_handle_message(devices, msg)"
-          - "enumeration_get_own_seq_id()"
-    required:
-      - name: "INetSend"
-      - name: "INetDevices"
-      - name: "ICmdParser"
 
-  # ── CONFIGURATION ──────────────────────────────────────────────────────────
   - id: configuration
     label: "Configuration"
-    provided:
-      - name: "IConfiguration"
-        operations:
-          - "configuration_start_master(devices)"
-          - "configuration_perform_measurements(devices, my_seq_id)"
-          - "configuration_send_measurements(devices, dst_addr)"
-    required:
-      - name: "ISsTwr"
-      - name: "INetSend"
-      - name: "INetDevices"
-      - name: "ICmdParser"
-      - name: "IMeasTable"
 
-  # ── RANGING ────────────────────────────────────────────────────────────────
   - id: ranging
     label: "Ranging"
-    provided:
-      - name: "IRanging"
-        operations:
-          - "ranging_run(devices, own_seq_id)"
-          - "ranging_handle_message(devices, msg, own_seq_id)"
-          - "ranging_handle_rx(devices, msg)"
-    required:
-      - name: "ISsTwr"
-      - name: "INetSend"
-      - name: "INetDevices"
-      - name: "ICmdParser"
-      - name: "IMeasTable"
-      - name: "IUart"
 
-  # ── MEAS TABLE ─────────────────────────────────────────────────────────────
   - id: meas_table
     label: "MeasTable"
-    provided:
-      - name: "IMeasTable"
-        operations:
-          - "meas_table_serialize(list, buf, len)"
-          - "meas_table_serialize_row(dev, buf, len)"
-          - "meas_table_deserialize(list, buf, len)"
-          - "meas_table_print(list)"
-    required:
-      - name: "INetDevices"
-      - name: "IUart"
 
-  # ── SS-TWR ─────────────────────────────────────────────────────────────────
+  # ── ДАЛЬНОМЕТРИЯ ───────────────────────────────────────────────────────────
+
   - id: ss_twr
     label: "SS-TWR"
-    provided:
-      - name: "ISsTwr"
-        operations:
-          - "ss_twr_measure_distance(dst, distance, temperature)"
-          - "ss_twr_isr(frame, len)"
-          - "ss_twr_read_temperature()"
-          - "ss_twr_set_ant_dly(tx_dly, rx_dly)"
-          - "ss_twr_set_temp_coef(k)"
-    required:
-      - name: "IDw1000"
-      - name: "INetMac"
     subcomponents:
       - id: initiator
         label: "Initiator\n(main-loop)"
-        note: "ss_twr_measure_distance: POLL→wait RESPONSE→timestamps→distance"
-        provides: ["IInitiator"]
-        requires: ["ICalib", "IDw1000", "IFrameTx"]
       - id: responder
         label: "Responder\n(ISR)"
-        note: "ss_twr_isr: recv POLL→delayed TX RESPONSE"
-        provides: ["IResponder"]
-        requires: ["ICalib", "IDw1000"]
       - id: calib_control
-        label: "CalibrationControl"
-        note: "g_tx_ant_dly, g_rx_ant_dly, g_k_temp, g_last_temp;\nss_twr_set_ant_dly, ss_twr_set_temp_coef,\nss_twr_read_temperature"
-        provides: ["ICalib"]
-        requires: ["IDw1000"]
+        label: "CalibControl"
     internal_interfaces:
       - name: "ICalib"
         provided_by: calib_control
         required_by: [initiator, responder]
-        operations: ["get_tx_ant_dly()", "get_rx_ant_dly()", "get_k_temp()", "get_last_temp()"]
+    port_delegations:
+      - {iface: "ISsTwr",   to: initiator}
+      - {iface: "IDw1000",  to: initiator}
+      - {iface: "IDw1000",  to: responder}
+      - {iface: "IDw1000",  to: calib_control}
+      - {iface: "INetSend", to: initiator}
 
-  # ── NET MAC ────────────────────────────────────────────────────────────────
+  # ── СЕТЕВОЙ УРОВЕНЬ ────────────────────────────────────────────────────────
+
   - id: net_mac
     label: "NetMAC"
-    provided:
-      - name: "INetSend"
-        operations:
-          - "net_send_broadcast(payload, len)"
-          - "net_send_to_16bit(dst, payload, len)"
-          - "net_send_to_64bit(dst_eui, payload, len)"
-      - name: "INetMac"
-        operations:
-          - "net_init(use_eui64, eui64, filter_mask)"
-          - "net_rx_poll(msg)"
-          - "net_get_src_addr16()"
-          - "net_build_frame(buf, dst, seq, payload, len)"
-    required:
-      - name: "IDw1000"
-      - name: "IRxBuf"
     subcomponents:
       - id: frame_builder
         label: "FrameBuilder"
-        note: "net_build_frame_control, net_build_header,\nnet_build_frame"
-        provides: ["IFrameTx"]
-        requires: ["ITxCtrl"]
       - id: tx_controller
         label: "TxController"
-        note: "net_send_frame_raw: mutex→forcetrxoff→\nwritetxdata→starttx→wait TXFRS"
-        provides: ["ITxCtrl"]
-        requires: ["IDw1000"]
       - id: rx_dispatcher
         label: "RxDispatcher"
-        note: "net_rx_ok_isr→rx_rbuf_push;\nnet_rx_poll→rx_rbuf_pop→net_parse_message"
-        provides: ["INetPoll"]
-        requires: ["IRxBuf", "IDw1000", "ITxCtrl"]
     internal_interfaces:
       - name: "ITxCtrl"
         provided_by: tx_controller
         required_by: [frame_builder, rx_dispatcher]
-        operations: ["net_send_frame_raw(frame, len, response_expected)"]
-      - name: "INetPoll"
-        provided_by: rx_dispatcher
-        required_by: []
-        note: "выходит наружу как часть INetMac"
+    port_delegations:
+      - {iface: "INetSend", to: frame_builder}
+      - {iface: "INetMac",  to: rx_dispatcher}
+      - {iface: "IDw1000",  to: tx_controller}
+      - {iface: "IDw1000",  to: rx_dispatcher}
+      - {iface: "IRxBuf",   to: rx_dispatcher}
 
-  # ── NET DISPATCH ───────────────────────────────────────────────────────────
-  - id: net_dispatch
-    label: "NetDispatch"
-    provided:
-      - name: "INetProcess"
-        operations:
-          - "net_radio_init()"
-          - "net_process(devices, idle_fn)"
-    required:
-      - name: "INetMac"
-      - name: "IDw1000"
-
-  # ── NET DEVICES ────────────────────────────────────────────────────────────
   - id: net_devices
     label: "NetDevices"
-    provided:
-      - name: "INetDevices"
-        operations:
-          - "net_device_create(mac, type)"
-          - "net_device_add(list, device)"
-          - "net_device_find_by_seq(list, seq_id)"
-          - "net_device_find_by_mac(list, mac)"
-          - "net_device_update_distance(device, to_seq_id, distance)"
-          - "net_devices_serialize(list, buf, len)"
-          - "net_devices_clear(list)"
 
-  # ── CMD PARSER ─────────────────────────────────────────────────────────────
   - id: cmd_parser
     label: "CmdParser"
-    provided:
-      - name: "ICmdParser"
-        operations:
-          - "cmd_parse(buffer) → cmd_parse_result_t"
-          - "cmd_str(cmd_code)"
-          - "cmd_len(cmd_code)"
 
-  # ── UART DRIVER ────────────────────────────────────────────────────────────
+  # ── ПЛАТФОРМА ──────────────────────────────────────────────────────────────
+
   - id: uart_driver
-    label: "UART Driver"
-    provided:
-      - name: "IUart"
-        operations:
-          - "uart_readline_idle(buf, len, idle_fn)"
-          - "uart_printf(fmt, ...)"
-          - "uart_puts(str)"
-          - "uart_putchar(c)"
-          - "uart_dbg(fmt, ...)"
-          - "uart_dbg_set(enable)"
-    required:
-      - name: "IHAL"
+    label: "UartDriver"
     subcomponents:
       - id: line_reader
         label: "LineReader"
-        note: "uart_readline_idle: посимвольный приём\nс вызовом idle_fn между символами"
-        provides: ["ILineRead"]
-        requires: ["IHalUart"]
       - id: formatter
         label: "Formatter"
-        note: "uart_printf, uart_puts, uart_putchar:\nцелочисленное форматирование (без float)"
-        provides: ["IFormat"]
-        requires: ["IHalUart"]
       - id: debug_output
         label: "DebugOutput"
-        note: "uart_dbg, uart_dbg_set:\nвывод только если debug_enabled=1"
-        provides: ["IDebug"]
-        requires: ["IFormat"]
     internal_interfaces:
-      - name: "IHalUart"
-        note: "USART_SendData / USART_GetFlagStatus (ST HAL)"
-        provided_by: null
-        required_by: [line_reader, formatter]
       - name: "IFormat"
         provided_by: formatter
-        required_by: debug_output
-        operations: ["uart_putchar(c)", "uart_puts(str)"]
+        required_by: [debug_output]
+    port_delegations:
+      - {iface: "IUart", to: line_reader}
+      - {iface: "IUart", to: formatter}
+      - {iface: "IUart", to: debug_output}
+      - {iface: "IHAL",  to: line_reader}
+      - {iface: "IHAL",  to: formatter}
 
-  # ── DW1000 DRIVER ──────────────────────────────────────────────────────────
   - id: dw1000
     label: "DW1000 Driver"
-    provided:
-      - name: "IDw1000"
-        operations:
-          - "dwt_initialise(config_flags)"
-          - "dwt_configure(config)"
-          - "dwt_starttx(mode)"
-          - "dwt_rxenable(mode)"
-          - "dwt_forcetrxoff()"
-          - "dwt_writetxdata(len, buf, offset)"
-          - "dwt_writetxfctrl(len, offset, ranging)"
-          - "dwt_readrxdata(buf, len, offset)"
-          - "dwt_readtxtimestamplo32()"
-          - "dwt_readrxtimestamplo32()"
-          - "dwt_readcarrierintegrator()"
-          - "dwt_readtempvbat(flag)"
-          - "dwt_geticreftemp()"
-          - "dwt_settxantennadelay(val)"
-          - "dwt_setrxantennadelay(val)"
-          - "dwt_isr()"
-    required:
-      - name: "IHAL"
 
-  # ── RX RING BUFFER ─────────────────────────────────────────────────────────
   - id: rx_rbuf
     label: "RxRingBuf"
-    provided:
-      - name: "IRxBuf"
-        operations:
-          - "rx_rbuf_push(data, len)  [ISR context]"
-          - "rx_rbuf_pop(data, out_len)  [main-loop]"
-          - "rx_rbuf_is_empty()"
 
-  # ── HAL ────────────────────────────────────────────────────────────────────
   - id: hal
-    label: "HAL\n(STM32 StdPeriph)"
-    provided:
-      - name: "IHAL"
-        operations:
-          - "SPI_*  — обмен с DW1000"
-          - "GPIO_* — сброс, IRQ DW1000"
-          - "USART_* — байтовый ввод/вывод"
-          - "portGetTickCount() — SysTick"
+    label: "HAL\n(SPI / GPIO / SysTick)"
 
 dependencies:
 
-  # Роли → протоколы
-  - from: main_anchor
-    to: enumeration
-    label: "<<use>> IEnumeration"
-  - from: main_anchor
-    to: configuration
-    label: "<<use>> IConfiguration"
-  - from: main_anchor
-    to: ranging
-    label: "<<use>> IRanging"
-  - from: anchor
-    to: enumeration
-    label: "<<use>> IEnumeration"
-  - from: anchor
-    to: configuration
-    label: "<<use>> IConfiguration"
-  - from: tag
-    to: enumeration
-    label: "<<use>> IEnumeration"
-  - from: tag
-    to: configuration
-    label: "<<use>> IConfiguration"
-  - from: tag
-    to: ranging
-    label: "<<use>> IRanging"
+  # ── MainAnchor → всё что использует ─────────────────────────────────────────
+  - {from: main_anchor, to: uart_driver,   label: "IUart"}
+  - {from: main_anchor, to: net_mac,       label: "INetSend"}
+  - {from: main_anchor, to: net_devices,   label: "INetDevices"}
+  - {from: main_anchor, to: cmd_parser,    label: "ICmdParser"}
+  - {from: main_anchor, to: enumeration,   label: "IEnumeration"}
+  - {from: main_anchor, to: configuration, label: "IConfiguration"}
+  - {from: main_anchor, to: ranging,       label: "IRanging"}
+  - {from: main_anchor, to: ss_twr,        label: "ISsTwr"}
+  - {from: main_anchor, to: meas_table,    label: "IMeasTable"}
 
-  # Роли → сеть
-  - from: main_anchor
-    to: net_mac
-    label: "<<use>> INetSend"
-  - from: main_anchor
-    to: net_devices
-    label: "<<use>> INetDevices"
-  - from: main_anchor
-    to: cmd_parser
-    label: "<<use>> ICmdParser"
-  - from: anchor
-    to: net_dispatch
-    label: "<<use>> INetProcess"
-  - from: tag
-    to: net_dispatch
-    label: "<<use>> INetProcess"
+  # ── Anchor → всё что использует ──────────────────────────────────────────────
+  - {from: anchor, to: enumeration,   label: "IEnumeration"}
+  - {from: anchor, to: configuration, label: "IConfiguration"}
+  - {from: anchor, to: net_mac,       label: "INetMac"}
+  - {from: anchor, to: ss_twr,        label: "ISsTwr"}
 
-  # Роли → платформа
-  - from: main_anchor
-    to: uart_driver
-    label: "<<use>> IUart"
-  - from: main_anchor
-    to: ss_twr
-    label: "<<use>> ISsTwr"
+  # ── Tag → всё что использует ─────────────────────────────────────────────────
+  - {from: tag, to: enumeration,   label: "IEnumeration"}
+  - {from: tag, to: configuration, label: "IConfiguration"}
+  - {from: tag, to: ranging,       label: "IRanging"}
+  - {from: tag, to: net_mac,       label: "INetMac"}
+  - {from: tag, to: ss_twr,        label: "ISsTwr"}
 
-  # Протоколы → SS-TWR
-  - from: configuration
-    to: ss_twr
-    label: "<<use>> ISsTwr"
-  - from: ranging
-    to: ss_twr
-    label: "<<use>> ISsTwr"
+  # ── Протоколы → зависимости ───────────────────────────────────────────────────
+  - {from: enumeration,   to: net_mac,     label: "INetSend"}
+  - {from: enumeration,   to: net_devices, label: "INetDevices"}
+  - {from: enumeration,   to: cmd_parser,  label: "ICmdParser"}
 
-  # Протоколы → сеть
-  - from: enumeration
-    to: net_mac
-    label: "<<use>> INetSend"
-  - from: enumeration
-    to: net_devices
-    label: "<<use>> INetDevices"
-  - from: enumeration
-    to: cmd_parser
-    label: "<<use>> ICmdParser"
-  - from: configuration
-    to: net_mac
-    label: "<<use>> INetSend"
-  - from: configuration
-    to: net_devices
-    label: "<<use>> INetDevices"
-  - from: configuration
-    to: cmd_parser
-    label: "<<use>> ICmdParser"
-  - from: configuration
-    to: meas_table
-    label: "<<use>> IMeasTable"
-  - from: ranging
-    to: net_mac
-    label: "<<use>> INetSend"
-  - from: ranging
-    to: net_devices
-    label: "<<use>> INetDevices"
-  - from: ranging
-    to: cmd_parser
-    label: "<<use>> ICmdParser"
-  - from: ranging
-    to: meas_table
-    label: "<<use>> IMeasTable"
-  - from: ranging
-    to: uart_driver
-    label: "<<use>> IUart"
-  - from: meas_table
-    to: net_devices
-    label: "<<use>> INetDevices"
-  - from: meas_table
-    to: uart_driver
-    label: "<<use>> IUart"
+  - {from: configuration, to: net_mac,     label: "INetSend"}
+  - {from: configuration, to: net_devices, label: "INetDevices"}
+  - {from: configuration, to: cmd_parser,  label: "ICmdParser"}
+  - {from: configuration, to: meas_table,  label: "IMeasTable"}
+  - {from: configuration, to: ss_twr,      label: "ISsTwr"}
 
-  # SS-TWR → платформа
-  - from: ss_twr
-    to: dw1000
-    label: "<<use>> IDw1000"
-  - from: ss_twr
-    to: net_mac
-    label: "<<use>> INetMac"
+  - {from: ranging,       to: net_mac,     label: "INetSend"}
+  - {from: ranging,       to: net_devices, label: "INetDevices"}
+  - {from: ranging,       to: cmd_parser,  label: "ICmdParser"}
+  - {from: ranging,       to: meas_table,  label: "IMeasTable"}
+  - {from: ranging,       to: ss_twr,      label: "ISsTwr"}
+  - {from: ranging,       to: uart_driver, label: "IUart"}
 
-  # Сеть → платформа
-  - from: net_mac
-    to: dw1000
-    label: "<<use>> IDw1000"
-  - from: net_mac
-    to: rx_rbuf
-    label: "<<use>> IRxBuf"
-  - from: net_dispatch
-    to: net_mac
-    label: "<<use>> INetMac"
-  - from: net_dispatch
-    to: dw1000
-    label: "<<use>> IDw1000"
+  - {from: meas_table, to: net_devices, label: "INetDevices"}
+  - {from: meas_table, to: uart_driver, label: "IUart"}
 
-  # Платформа → HAL
-  - from: dw1000
-    to: hal
-    label: "<<use>> IHAL"
-  - from: uart_driver
-    to: hal
-    label: "<<use>> IHAL"
+  # ── SS-TWR → зависимости ─────────────────────────────────────────────────────
+  - {from: ss_twr, to: dw1000,  label: "IDw1000"}
+  - {from: ss_twr, to: net_mac, label: "INetSend"}
+
+  # ── NetMAC → зависимости ─────────────────────────────────────────────────────
+  - {from: net_mac, to: dw1000,  label: "IDw1000"}
+  - {from: net_mac, to: rx_rbuf, label: "IRxBuf"}
+
+  # ── Платформа → зависимости ───────────────────────────────────────────────────
+  - {from: dw1000,      to: hal, label: "IHAL"}
+  - {from: uart_driver, to: hal, label: "IHAL"}
